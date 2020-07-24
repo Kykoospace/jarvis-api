@@ -16,9 +16,4 @@ public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
-
-    @PostMapping("/auth/sign-in")
-    public signIn(@Valid @RequestBody LoginRequest loginRequest) {
-
-    }
 }
