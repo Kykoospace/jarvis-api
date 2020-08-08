@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Getter
 @Setter
@@ -26,4 +27,12 @@ public class User {
     @Column(name = "password", nullable = false)
     private String password;
 
+    @ManyToMany(mappedBy = "sharedWithUsers")
+    private List<Task> tasksSharedToUser;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
+    private List<TaskCollection> taskCollections;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
+    private List<TaskTag> taskTags;
 }
