@@ -1,14 +1,19 @@
 package jarvisapi.entity;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import javax.persistence.*;
 import java.util.Date;
 import java.util.List;
 
+@Getter
+@Setter
 @Entity
 public class Task {
 
     @Id
-    @GeneratedValue(strategy= GenerationType.AUTO)
+    @GeneratedValue(strategy= GenerationType.IDENTITY)
     private long id;
 
     @ManyToOne(fetch= FetchType.LAZY)
@@ -24,10 +29,10 @@ public class Task {
     private int priority;
 
     @Column(name = "expiration_date")
-    private Date expiration_date;
+    private Date expirationDate;
 
     @Column(name = "reminding_date")
-    private Date reminding_date;
+    private Date remindingDate;
 
     @Column(name = "pinned")
     private boolean pinned;
@@ -38,7 +43,7 @@ public class Task {
     @Column(name = "checked_date")
     private Date checkedDate;
 
-    @Column(name = "creation_date")
+    @Column(name = "creation_date", nullable = false)
     private Date creationDate;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "task", fetch = FetchType.LAZY)
@@ -51,4 +56,32 @@ public class Task {
     @ManyToMany
     @JoinTable(name = "jt_task_is_shared", joinColumns = @JoinColumn(name = "task_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
     private List<User> sharedWithUsers;
+
+    public Task(
+            TaskCollection collection,
+            String label,
+            String description,
+            int priority,
+            Date expirationDate,
+            Date remindingDate,
+            boolean pinned,
+            boolean checked,
+            List<SubTask> subTasks,
+            List<TaskTag> tags,
+            List<User> sharedWithUsers
+    ) {
+        this.collection = collection;
+        this.label = label;
+        this.description = description;
+        this.priority = priority;
+        this.expirationDate = expirationDate;
+        this.remindingDate = remindingDate;
+        this.pinned = pinned;
+        this.checked = checked;
+        this.checkedDate = (checked) ? new Date() : null;
+        this.creationDate = new Date();
+        this.subTasks = subTasks;
+        this.tags = tags;
+        this.sharedWithUsers = sharedWithUsers;
+    }
 }
