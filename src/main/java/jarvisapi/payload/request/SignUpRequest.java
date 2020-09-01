@@ -7,10 +7,14 @@ import javax.validation.constraints.NotBlank;
 
 @Getter
 @Setter
-public class LoginRequest {
-    @NotBlank
-    private String username;
+public class SignUpRequest {
 
     @NotBlank
-    private String password;
+    private String firstName;
+
+    @NotBlank
+    private String lastName;
+
+    @NotBlank
+    private String email;
 }

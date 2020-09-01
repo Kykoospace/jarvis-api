@@ -1,6 +1,8 @@
 package jarvisapi.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
@@ -9,6 +11,7 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
+@NoArgsConstructor
 public class User {
 
     @Id
@@ -24,8 +27,10 @@ public class User {
     @Column(name = "email", nullable = false)
     private String email;
 
-    @Column(name = "password", nullable = false)
-    private String password;
+    @JsonIgnore
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_security", referencedColumnName = "id", nullable = false)
+    private UserSecurity userSecurity;
 
     @ManyToMany(mappedBy = "sharedWithUsers")
     private List<Task> tasksSharedToUser;
@@ -35,4 +40,16 @@ public class User {
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
     private List<TaskTag> taskTags;
+
+    public User(
+            String firstName,
+            String lastName,
+            String email,
+            UserSecurity userSecurity
+    ) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.userSecurity = userSecurity;
+    }
 }

@@ -21,9 +21,6 @@ public class TaskCollection {
     @Column(name = "label", nullable = false)
     private String label;
 
-    @Column(name = "color")
-    private String color;
-
     @Column(name = "deletable", nullable = false)
     private boolean deletable;
 
@@ -31,16 +28,10 @@ public class TaskCollection {
     private List<Task> tasks;
 
     public TaskCollection(
-            User owner,
             String label,
-            String color,
-            boolean deletable,
-            List<Task> tasks
+            boolean deletable
     ) {
-        this.owner = owner;
         this.label = label;
-        this.color = color;
         this.deletable = deletable;
-        this.tasks = tasks;
     }
 }
