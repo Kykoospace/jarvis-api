@@ -12,6 +12,8 @@ import java.util.Optional;
 @Service
 public class SignUpRequestService {
 
+    private static final String DEFAULT_PASSWORD = "banane";
+
     @Autowired
     private SignUpRequestRepository signUpRequestRepository;
 
@@ -33,7 +35,7 @@ public class SignUpRequestService {
      * @return
      * @throws SignUpRequestNotFoundException
      */
-    public SignUpRequest get(Long id) throws SignUpRequestNotFoundException {
+    public SignUpRequest get(long id) throws SignUpRequestNotFoundException {
         Optional<SignUpRequest> signUpRequest = this.signUpRequestRepository.findById(id);
 
         if (!signUpRequest.isPresent()) {
@@ -56,26 +58,11 @@ public class SignUpRequestService {
     }
 
     /**
-     * Reject SignUpRequest
-     * @param id
-     * @throws SignUpRequestNotFoundException
-     */
-    public void reject(Long id) throws SignUpRequestNotFoundException {
-        Optional<SignUpRequest> signUpRequest = this.signUpRequestRepository.findById(id);
-
-        if (!signUpRequest.isPresent()) {
-            throw new SignUpRequestNotFoundException();
-        }
-
-        this.signUpRequestRepository.delete(signUpRequest.get());
-    }
-
-    /**
      * Accept SignUpRequest
      * @param id
      * @throws SignUpRequestNotFoundException
      */
-    public void accept(Long id) throws SignUpRequestNotFoundException {
+    public void accept(long id) throws SignUpRequestNotFoundException {
         Optional<SignUpRequest> signUpRequest = this.signUpRequestRepository.findById(id);
 
         if (!signUpRequest.isPresent()) {
@@ -83,7 +70,27 @@ public class SignUpRequestService {
         }
 
         SignUpRequest userData = signUpRequest.get();
-        this.userService.create(userData.getFirstName(), userData.getLastName(), userData.getEmail(), "banane");
+        this.userService.create(
+                userData.getFirstName(),
+                userData.getLastName(),
+                userData.getEmail(),
+                SignUpRequestService.DEFAULT_PASSWORD
+        );
+        this.signUpRequestRepository.delete(signUpRequest.get());
+    }
+
+    /**
+     * Reject SignUpRequest
+     * @param id
+     * @throws SignUpRequestNotFoundException
+     */
+    public void reject(long id) throws SignUpRequestNotFoundException {
+        Optional<SignUpRequest> signUpRequest = this.signUpRequestRepository.findById(id);
+
+        if (!signUpRequest.isPresent()) {
+            throw new SignUpRequestNotFoundException();
+        }
+
         this.signUpRequestRepository.delete(signUpRequest.get());
     }
 }

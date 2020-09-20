@@ -29,6 +29,9 @@ public class UserSecurity {
     @Column(name = "first_connection")
     private boolean firstConnection;
 
+    @Column(name = "account_enabled")
+    private boolean accountEnabled;
+
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "userSecurity", fetch = FetchType.LAZY)
     private List<UserDevice> devices;
 
@@ -38,5 +41,6 @@ public class UserSecurity {
         this.isAdmin = false;
         this.password = password;
         this.firstConnection = true;
+        this.accountEnabled = true;
     }
 }

@@ -32,12 +32,15 @@ public class User {
     @JoinColumn(name = "user_security", referencedColumnName = "id", nullable = false)
     private UserSecurity userSecurity;
 
+    @JsonIgnore
     @ManyToMany(mappedBy = "sharedWithUsers")
     private List<Task> tasksSharedToUser;
 
+    @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
     private List<TaskCollection> taskCollections;
 
+    @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
     private List<TaskTag> taskTags;
 

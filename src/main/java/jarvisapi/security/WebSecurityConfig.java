@@ -9,7 +9,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,14 +26,14 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         return new BCryptPasswordEncoder();
     }
 
-    @Resource(name = "userService")
-    private UserDetailsService userDetailsService;
-
     @Override
     @Bean
     public AuthenticationManager authenticationManagerBean() throws Exception {
         return super.authenticationManagerBean();
     }
+
+    @Resource(name = "userService")
+    private UserDetailsService userDetailsService;
 
     @Autowired
     private JwtAuthenticationEntryPoint unauthorizedHandler;
@@ -52,7 +51,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
      */
     @Autowired
     public void globalUserDetails(final AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
+        auth.userDetailsService(this.userDetailsService).passwordEncoder(passwordEncoder());
     }
 
     /**
@@ -66,15 +65,14 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Autowired
-    public void configureGlobal(AuthenticationManagerBuilder auth)
-            throws Exception {
+    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
         auth.jdbcAuthentication()
                 .dataSource(dataSource)
-                .usersByUsernameQuery("SELECT * "
-                        + "FROM user "
-                        + "WHERE email = ?")
-                .authoritiesByUsernameQuery("SELECT CASE WHEN s.is_administrator <> 0 THEN 'ADMIN' ELSE 'USER' END "
-                        + "FROM user_security s LEFT JOIN user u ON s.id = u.user_security "
+                .usersByUsernameQuery("SELECT u.id, s.password, s.account_enabled "
+                        + "FROM user u LEFT JOIN user_security s ON u.user_security=s.id "
+                        + "WHERE u.email = ?")
+                .authoritiesByUsernameQuery("SELECT u.id, CASE WHEN s.is_administrator <> 0 THEN 'ADMIN' ELSE 'USER' END "
+                        + "FROM user u LEFT JOIN user_security s ON u.user_security=s.id "
                         + "WHERE u.email = ?");
     }
 
@@ -85,7 +83,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests()
                 .antMatchers("/api/v1/test/protected").hasAuthority("ADMIN")
-                .anyRequest().permitAll().and();
+                .anyRequest().permitAll();
 
         http.addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class);
     }

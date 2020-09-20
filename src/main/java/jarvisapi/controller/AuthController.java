@@ -15,25 +15,23 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
     @Autowired
-    private AuthenticationManager authenticationManager;
-
-    @Autowired
     private JwtTokenUtil jwtTokenUtil;
 
     @Autowired
     private SignUpRequestService signUpRequestService;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
 
     @Autowired
     private UserService userService;
@@ -63,16 +61,18 @@ public class AuthController {
          * Else
          *  Return forbidden access
          */
+        // TODO: move to getUserAuthentication() in userService
         final Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        signInRequest.getEmail(),
-                        signInRequest.getPassword()
+                this.userService.getUserAuthentication(signInRequest.getEmail(), signInRequest.getPassword())
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        return ResponseEntity.ok(
+                new SignInResponse(
+                        jwtTokenUtil.generateToken(authentication),
+                        this.userService.getByUsername(authentication.getName())
                 )
         );
-        UserDetails userDetails = this.userService.loadUserByUsername(authentication.getName());
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        final String token = jwtTokenUtil.generateToken(authentication);
-        return ResponseEntity.ok(new SignInResponse(token));
     }
 
     @GetMapping("/sign-up-request")

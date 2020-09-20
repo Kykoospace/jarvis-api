@@ -29,4 +29,10 @@ public class UserDevice {
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "userDevice", fetch = FetchType.LAZY)
     private List<Connection> connections;
+
+    public UserDevice(String macAddress, String type) {
+        this.macAddress = macAddress;
+        this.type = type;
+        this.authorized = false;
+    }
 }
