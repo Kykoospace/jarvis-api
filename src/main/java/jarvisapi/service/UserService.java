@@ -16,6 +16,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -42,6 +43,17 @@ public class UserService implements UserDetailsService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    public User getUserFromContext() {
+        org.springframework.security.core.userdetails.User userDetails = (org.springframework.security.core.userdetails.User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Optional<User> user = this.userRepository.findByEmail(userDetails.getUsername());
+
+        if (!user.isPresent()) {
+            throw new UserNotFoundException();
+        }
+
+        return user.get();
+    }
+
     /**
      * Get all User
      * @return
@@ -67,7 +79,7 @@ public class UserService implements UserDetailsService {
 
     /**
      * Get User by email
-     * @param email
+     * @param username
      * @return
      */
     public User getByUsername(String username) {
@@ -78,6 +90,16 @@ public class UserService implements UserDetailsService {
         }
 
         return user.get();
+    }
+
+    /**
+     * Check if email is available
+     * @param email
+     * @return
+     */
+    public boolean isEmailAvailable(String email) {
+        Optional<User> user = this.userRepository.findByEmail(email);
+        return !user.isPresent();
     }
 
     /**
@@ -240,7 +262,7 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Get encoded password
+     * Get encoded salted password
      * @param password
      * @return
      */

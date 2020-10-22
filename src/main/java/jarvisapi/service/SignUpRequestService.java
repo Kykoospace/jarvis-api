@@ -58,6 +58,16 @@ public class SignUpRequestService {
     }
 
     /**
+     * Check if email is available
+     * @param email
+     * @return
+     */
+    public boolean isEmailAvailable(String email) {
+        Optional<SignUpRequest> signUpRequest = this.signUpRequestRepository.findByEmail(email);
+        return !signUpRequest.isPresent();
+    }
+
+    /**
      * Accept SignUpRequest
      * @param id
      * @throws SignUpRequestNotFoundException

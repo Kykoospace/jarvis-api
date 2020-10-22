@@ -1,25 +1,23 @@
 package jarvisapi.security;
 
-import ch.qos.logback.core.net.SyslogOutputStream;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.annotation.processing.SupportedSourceVersion;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
 
 /**
  * JwtAuthenticationFilter
@@ -47,6 +45,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (userEmail == null) {
                     logger.error("Token expired");
                 }
+            } catch (final MalformedJwtException e) {
+                logger.error("the JWT is malformed", e);
             } catch (final IllegalArgumentException e) {
                 logger.error("an error occurred during getting username from token", e);
             } catch (final ExpiredJwtException e) {
@@ -55,9 +55,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 logger.error("Authentication Failed. Username or Password not valid.", e);
             }
         }
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            final UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = null;
+            try {
+                userDetails = userDetailsService.loadUserByUsername(userEmail);
+            } catch (UsernameNotFoundException e) {
+                logger.error("username not found");
+            }
             System.out.println(userDetails.getAuthorities());
 
             if (jwtTokenUtil.validateToken(authToken, userDetails)) {

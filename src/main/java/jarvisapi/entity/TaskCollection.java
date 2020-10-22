@@ -22,7 +22,7 @@ public class TaskCollection {
     private String label;
 
     @Column(name = "deletable", nullable = false)
-    private boolean deletable;
+    private boolean deletable = true;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "collection", fetch = FetchType.LAZY)
     private List<Task> tasks;
@@ -33,5 +33,11 @@ public class TaskCollection {
     ) {
         this.label = label;
         this.deletable = deletable;
+    }
+
+    public TaskCollection(
+            String label
+    ) {
+        this.label = label;
     }
 }

@@ -1,6 +1,8 @@
 package jarvisapi.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
@@ -16,8 +18,12 @@ public class Task {
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private long id;
 
-    @ManyToOne(fetch= FetchType.LAZY)
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
     private TaskCollection collection;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User owner;
 
     @Column(name = "label", nullable = false)
     private String label;
@@ -40,11 +46,11 @@ public class Task {
     @Column(name = "checked")
     private boolean checked;
 
-    @Column(name = "checked_date")
-    private Date checkedDate;
+    @Column(name = "check_date")
+    private Date checkDate;
 
     @Column(name = "creation_date", nullable = false)
-    private Date creationDate;
+    private Date creationDate = new Date();
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "task", fetch = FetchType.LAZY)
     private List<SubTask> subTasks;
@@ -78,8 +84,7 @@ public class Task {
         this.remindingDate = remindingDate;
         this.pinned = pinned;
         this.checked = checked;
-        this.checkedDate = (checked) ? new Date() : null;
-        this.creationDate = new Date();
+        this.checkDate = (checked) ? new Date() : null;
         this.subTasks = subTasks;
         this.tags = tags;
         this.sharedWithUsers = sharedWithUsers;

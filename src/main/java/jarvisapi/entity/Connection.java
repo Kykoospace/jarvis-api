@@ -19,8 +19,16 @@ public class Connection {
     private UserDevice userDevice;
 
     @Column(name = "date")
-    private Date date;
+    private Date date = new Date();
 
     @Column(name = "location")
     private String location;
+
+    public Connection(
+            UserDevice userDevice,
+            String location
+    ) {
+        this.userDevice = userDevice;
+        this.location = location;
+    }
 }

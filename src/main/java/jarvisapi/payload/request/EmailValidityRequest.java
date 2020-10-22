@@ -8,15 +8,7 @@ import javax.validation.constraints.NotNull;
 
 @Getter
 @Setter
-public class SignUpRequest {
-
-    @NotBlank
-    @NotNull
-    private String firstName;
-
-    @NotBlank
-    @NotNull
-    private String lastName;
+public class EmailValidityRequest {
 
     @NotBlank
     @NotNull

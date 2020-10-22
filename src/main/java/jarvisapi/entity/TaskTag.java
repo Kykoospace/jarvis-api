@@ -1,5 +1,6 @@
 package jarvisapi.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,12 +16,14 @@ public class TaskTag {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     private User owner;
 
     @Column(name = "label", nullable = false)
     private String label;
 
+    @JsonIgnore
     @ManyToMany(mappedBy = "tags")
     private List<Task> tasks;
 

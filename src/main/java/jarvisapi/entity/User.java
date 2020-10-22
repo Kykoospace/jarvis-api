@@ -24,7 +24,7 @@ public class User {
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
-    @Column(name = "email", nullable = false)
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
 
     @JsonIgnore
@@ -33,12 +33,16 @@ public class User {
     private UserSecurity userSecurity;
 
     @JsonIgnore
-    @ManyToMany(mappedBy = "sharedWithUsers")
-    private List<Task> tasksSharedToUser;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
+    private List<Task> tasks;
 
     @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
     private List<TaskCollection> taskCollections;
+
+    @JsonIgnore
+    @ManyToMany(mappedBy = "sharedWithUsers")
+    private List<Task> tasksSharedToUser;
 
     @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)

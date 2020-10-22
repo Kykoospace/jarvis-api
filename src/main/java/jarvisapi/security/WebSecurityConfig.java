@@ -50,8 +50,17 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
      *             IllegalArgumentException
      */
     @Autowired
-    public void globalUserDetails(final AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(this.userDetailsService).passwordEncoder(passwordEncoder());
+    public void configure(final AuthenticationManagerBuilder auth) throws Exception {
+        auth
+                .jdbcAuthentication()
+                .dataSource(dataSource)
+                .passwordEncoder(passwordEncoder())
+                .usersByUsernameQuery("SELECT u.email, s.password, s.account_enabled "
+                        + "FROM user u LEFT JOIN user_security s ON u.user_security=s.id "
+                        + "WHERE u.email = ?")
+                .authoritiesByUsernameQuery("SELECT u.email, CASE WHEN s.is_administrator <> 0 THEN 'ADMIN' ELSE 'USER' END "
+                        + "FROM user u LEFT JOIN user_security s ON u.user_security=s.id "
+                        + "WHERE u.email = ?");
     }
 
     /**
@@ -62,18 +71,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public JwtAuthenticationFilter authenticationTokenFilterBean() {
         return new JwtAuthenticationFilter();
-    }
-
-    @Autowired
-    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        auth.jdbcAuthentication()
-                .dataSource(dataSource)
-                .usersByUsernameQuery("SELECT u.id, s.password, s.account_enabled "
-                        + "FROM user u LEFT JOIN user_security s ON u.user_security=s.id "
-                        + "WHERE u.email = ?")
-                .authoritiesByUsernameQuery("SELECT u.id, CASE WHEN s.is_administrator <> 0 THEN 'ADMIN' ELSE 'USER' END "
-                        + "FROM user u LEFT JOIN user_security s ON u.user_security=s.id "
-                        + "WHERE u.email = ?");
     }
 
     @Override

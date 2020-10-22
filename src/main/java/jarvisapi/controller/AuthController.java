@@ -3,6 +3,7 @@ package jarvisapi.controller;
 import jarvisapi.entity.SignUpRequest;
 import jarvisapi.entity.User;
 import jarvisapi.exception.SignUpRequestNotFoundException;
+import jarvisapi.payload.request.EmailValidityRequest;
 import jarvisapi.payload.request.SignInRequest;
 import jarvisapi.payload.response.SignInResponse;
 import jarvisapi.security.JwtTokenUtil;
@@ -12,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -46,6 +46,18 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/email-validity")
+    public ResponseEntity checkEmailValidity(@Valid @RequestBody EmailValidityRequest emailValidityRequest) {
+        if (emailValidityRequest.getEmail() == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+
+        final boolean emailAvailableForUsers = this.userService.isEmailAvailable(emailValidityRequest.getEmail());
+        final boolean emailAvailableForSignUpRequests = this.signUpRequestService.isEmailAvailable(emailValidityRequest.getEmail());
+
+        return ResponseEntity.status(HttpStatus.OK).body(emailAvailableForUsers && emailAvailableForSignUpRequests);
+    }
+
     @PostMapping("/sign-in")
     public ResponseEntity signIn(@Valid @RequestBody SignInRequest signInRequest) {
         /*
@@ -61,16 +73,19 @@ public class AuthController {
          * Else
          *  Return forbidden access
          */
-        // TODO: move to getUserAuthentication() in userService
         final Authentication authentication = authenticationManager.authenticate(
                 this.userService.getUserAuthentication(signInRequest.getEmail(), signInRequest.getPassword())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        User user = this.userService.getByUsername(authentication.getName());
+
         return ResponseEntity.ok(
                 new SignInResponse(
                         jwtTokenUtil.generateToken(authentication),
-                        this.userService.getByUsername(authentication.getName())
+                        "",
+                        user.getUserSecurity().isAdmin(),
+                        user
                 )
         );
     }
@@ -101,7 +116,8 @@ public class AuthController {
     public ResponseEntity acceptSignUpRequest(@PathVariable long id) {
         try {
             this.signUpRequestService.accept(id);
-            return ResponseEntity.status(HttpStatus.OK).body(null);
+            List<SignUpRequest> signUpRequests = this.signUpRequestService.getAll();
+            return ResponseEntity.status(HttpStatus.OK).body(signUpRequests);
         } catch (SignUpRequestNotFoundException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (Exception exception) {
@@ -114,7 +130,8 @@ public class AuthController {
     public ResponseEntity rejectSignUpRequest(@PathVariable long id) {
         try {
             this.signUpRequestService.reject(id);
-            return ResponseEntity.status(HttpStatus.OK).body(null);
+            List<SignUpRequest> signUpRequests = this.signUpRequestService.getAll();
+            return ResponseEntity.status(HttpStatus.OK).body(signUpRequests);
         } catch (SignUpRequestNotFoundException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (Exception exception) {

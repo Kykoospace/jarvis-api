@@ -46,15 +46,12 @@ public class JwtTokenUtil implements Serializable {
     }
 
     private <T> T getClaimFromToken(final String token, final Function<Claims, T> claimsResolver) {
-        final Claims claims = getAllClaimsFromToken(token);
-        return claimsResolver.apply(claims);
-    }
-
-    private Claims getAllClaimsFromToken(final String token) {
-        return Jwts.parser()
+        final Claims claims
+                = Jwts.parser()
                 .setSigningKey(JWT_SECRET_KEY)
                 .parseClaimsJws(token)
                 .getBody();
+        return claimsResolver.apply(claims);
     }
 
     private Boolean isTokenExpired(final String token) {
@@ -93,7 +90,11 @@ public class JwtTokenUtil implements Serializable {
      */
     public Boolean validateToken(final String token, final UserDetails userDetails) {
         final String userEmail = getUserEmailFromToken(token);
-        return userEmail.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        try {
+            return userEmail.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        } catch (MalformedJwtException e) {
+            return false;
+        }
     }
 
     public UsernamePasswordAuthenticationToken getAuthentication(final String token, final UserDetails userDetails) {

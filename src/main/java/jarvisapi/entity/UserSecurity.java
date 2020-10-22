@@ -21,16 +21,16 @@ public class UserSecurity {
     private User user;
 
     @Column(name = "is_administrator")
-    private boolean isAdmin;
+    private boolean isAdmin = false;
 
     @Column(name = "password")
     private String password;
 
     @Column(name = "first_connection")
-    private boolean firstConnection;
+    private boolean firstConnection = true;
 
     @Column(name = "account_enabled")
-    private boolean accountEnabled;
+    private boolean accountEnabled = false;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "userSecurity", fetch = FetchType.LAZY)
     private List<UserDevice> devices;
@@ -38,9 +38,6 @@ public class UserSecurity {
     public UserSecurity(
             String password
     ) {
-        this.isAdmin = false;
         this.password = password;
-        this.firstConnection = true;
-        this.accountEnabled = true;
     }
 }

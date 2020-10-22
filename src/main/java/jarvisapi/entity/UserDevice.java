@@ -25,7 +25,7 @@ public class UserDevice {
     private String type;
 
     @Column(name = "authorized")
-    private boolean authorized;
+    private boolean authorized = false;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "userDevice", fetch = FetchType.LAZY)
     private List<Connection> connections;
@@ -33,6 +33,5 @@ public class UserDevice {
     public UserDevice(String macAddress, String type) {
         this.macAddress = macAddress;
         this.type = type;
-        this.authorized = false;
     }
 }

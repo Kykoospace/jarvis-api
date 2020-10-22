@@ -10,5 +10,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class SignInResponse {
     private String token;
-    private Object user;
+    private String refreshToken;
+    private boolean isAdmin;
+    private User user;
 }
