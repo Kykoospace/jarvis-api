@@ -19,11 +19,11 @@ public class TaskService {
     @Autowired
     private TaskCollectionService taskCollectionService;
 
-    public List<Task> getTasks() {
+    public List<Task> getAll() {
         return this.taskRepository.findAll();
     }
 
-    public Task getTask(long id) throws TaskNotFoundException {
+    public Task get(long id) throws TaskNotFoundException {
         Optional<Task> task = this.taskRepository.findById(id);
 
         if (!task.isPresent()) {

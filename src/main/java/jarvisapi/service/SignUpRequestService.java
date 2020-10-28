@@ -1,6 +1,8 @@
 package jarvisapi.service;
 
 import jarvisapi.entity.SignUpRequest;
+import jarvisapi.entity.SingleUseToken;
+import jarvisapi.entity.User;
 import jarvisapi.exception.SignUpRequestNotFoundException;
 import jarvisapi.repository.SignUpRequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,8 +13,6 @@ import java.util.Optional;
 
 @Service
 public class SignUpRequestService {
-
-    private static final String DEFAULT_PASSWORD = "banane";
 
     @Autowired
     private SignUpRequestRepository signUpRequestRepository;
@@ -73,20 +73,27 @@ public class SignUpRequestService {
      * @throws SignUpRequestNotFoundException
      */
     public void accept(long id) throws SignUpRequestNotFoundException {
-        Optional<SignUpRequest> signUpRequest = this.signUpRequestRepository.findById(id);
+        Optional<SignUpRequest> signUpRequestOptional = this.signUpRequestRepository.findById(id);
 
-        if (!signUpRequest.isPresent()) {
+        if (!signUpRequestOptional.isPresent()) {
             throw new SignUpRequestNotFoundException();
         }
 
-        SignUpRequest userData = signUpRequest.get();
-        this.userService.create(
-                userData.getFirstName(),
-                userData.getLastName(),
-                userData.getEmail(),
-                SignUpRequestService.DEFAULT_PASSWORD
+        // Create the new user:
+        SignUpRequest signUpRequest = signUpRequestOptional.get();
+        User user = this.userService.create(
+                signUpRequest.getFirstName(),
+                signUpRequest.getLastName(),
+                signUpRequest.getEmail()
         );
-        this.signUpRequestRepository.delete(signUpRequest.get());
+
+        // Set the activation token:
+        this.userService.setNewActivationToken(user.getId());
+
+        // Send activation email:
+        // TODO: send activation email
+
+        this.signUpRequestRepository.delete(signUpRequest);
     }
 
     /**

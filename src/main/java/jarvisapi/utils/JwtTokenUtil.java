@@ -1,4 +1,4 @@
-package jarvisapi.security;
+package jarvisapi.utils;
 
 import io.jsonwebtoken.*;
 import jarvisapi.entity.User;
@@ -29,7 +29,7 @@ public class JwtTokenUtil implements Serializable {
     @Value("${spring.jwt.jsonWebTokenSecretKey}")
     private String JWT_SECRET_KEY;
     @Value("${spring.jwt.jsonWebTokenExpiration}")
-    private Long JWT_EXPIRATION;
+    private long JWT_EXPIRATION;
 
     /**
      * Get username from token
@@ -46,8 +46,7 @@ public class JwtTokenUtil implements Serializable {
     }
 
     private <T> T getClaimFromToken(final String token, final Function<Claims, T> claimsResolver) {
-        final Claims claims
-                = Jwts.parser()
+        final Claims claims = Jwts.parser()
                 .setSigningKey(JWT_SECRET_KEY)
                 .parseClaimsJws(token)
                 .getBody();

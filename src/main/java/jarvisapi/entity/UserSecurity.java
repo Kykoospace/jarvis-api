@@ -26,11 +26,12 @@ public class UserSecurity {
     @Column(name = "password")
     private String password;
 
-    @Column(name = "first_connection")
-    private boolean firstConnection = true;
-
     @Column(name = "account_enabled")
     private boolean accountEnabled = false;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @Column(name = "account_validation_token")
+    private SingleUseToken accountValidationToken;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "userSecurity", fetch = FetchType.LAZY)
     private List<UserDevice> devices;

@@ -1,12 +1,7 @@
 package jarvisapi.service;
 
-import jarvisapi.entity.TaskCollection;
-import jarvisapi.entity.User;
-import jarvisapi.entity.UserDevice;
-import jarvisapi.entity.UserSecurity;
-import jarvisapi.exception.UserDeviceNotFoundException;
-import jarvisapi.exception.UserNotFoundException;
-import jarvisapi.exception.UserSecurityNotFoundException;
+import jarvisapi.entity.*;
+import jarvisapi.exception.*;
 import jarvisapi.repository.UserDeviceRepository;
 import jarvisapi.repository.UserRepository;
 import jarvisapi.repository.UserSecurityRepository;
@@ -35,7 +30,7 @@ public class UserService implements UserDetailsService {
     private UserRepository userRepository;
 
     @Autowired
-    private UserSecurityRepository userSecurityRepository;
+    private SingleUseTokenService singleUseTokenService;
 
     @Autowired
     private UserDeviceRepository userDeviceRepository;
@@ -43,7 +38,7 @@ public class UserService implements UserDetailsService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public User getUserFromContext() {
+    public User getUserFromContext() throws UserNotFoundException {
         org.springframework.security.core.userdetails.User userDetails = (org.springframework.security.core.userdetails.User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Optional<User> user = this.userRepository.findByEmail(userDetails.getUsername());
 
@@ -67,7 +62,7 @@ public class UserService implements UserDetailsService {
      * @param id
      * @return
      */
-    public User get(long id) {
+    public User get(long id) throws UserNotFoundException {
         Optional<User> user = this.userRepository.findById(id);
 
         if (!user.isPresent()) {
@@ -82,7 +77,7 @@ public class UserService implements UserDetailsService {
      * @param username
      * @return
      */
-    public User getByUsername(String username) {
+    public User getByUsername(String username) throws UserNotFoundException {
         Optional<User> user = this.userRepository.findByEmail(username);
 
         if (!user.isPresent()) {
@@ -107,17 +102,16 @@ public class UserService implements UserDetailsService {
      * @param firstName
      * @param lastName
      * @param email
-     * @param password
      * @return
      */
     public User create(
             String firstName,
             String lastName,
-            String email,
-            String password
+            String email
     ) {
-        // User security config :
-        UserSecurity userSecurity = new UserSecurity(this.encodePassword(password));
+        // User security config with random password :
+        String randomPassword = UUID.randomUUID().toString();
+        UserSecurity userSecurity = new UserSecurity(this.encodePassword(randomPassword));
 
         // User creation :
         User user = new User(firstName, lastName, email, userSecurity);
@@ -178,6 +172,53 @@ public class UserService implements UserDetailsService {
         return new UsernamePasswordAuthenticationToken(email, this.saltPassword(password));
     }
 
+    public User activateAccount(String email, String activationToken, String password)
+            throws UserNotFoundException, SingleUseTokenNotFoundException, SingleUseTokenExpiredException {
+
+        Optional<User> userOptional = this.userRepository.findByEmail(email);
+
+        if (!userOptional.isPresent()) {
+            throw new UserNotFoundException();
+        }
+
+        User user = userOptional.get();
+
+        // Token check:
+        SingleUseToken singleUseToken = user.getUserSecurity().getAccountValidationToken();
+        if (!singleUseToken.getToken().equals(activationToken)) {
+            throw new SingleUseTokenNotFoundException();
+        }
+        if (!this.singleUseTokenService.isSingleUseTokenValid(user.getUserSecurity().getAccountValidationToken().getId())) {
+            throw new SingleUseTokenExpiredException();
+        }
+
+        // Activate account:
+        user.getUserSecurity().setAccountValidationToken(null);
+        user.getUserSecurity().setAccountEnabled(true);
+        user.getUserSecurity().setPassword(this.encodePassword(password));
+
+        return this.userRepository.save(user);
+    }
+
+    /**
+     * Set a new activation single use token
+     * @param id
+     * @throws UserNotFoundException
+     */
+    public void setNewActivationToken(long id) throws UserNotFoundException {
+        Optional<User> userOptional = this.userRepository.findById(id);
+
+        if (!userOptional.isPresent()) {
+            throw new UserNotFoundException();
+        }
+
+        User user = userOptional.get();
+        SingleUseToken singleUseToken = this.singleUseTokenService.create();
+        user.getUserSecurity().setAccountValidationToken(singleUseToken);
+
+        this.userRepository.save(user);
+    }
+
     /**
      * Change User password
      * @param id
@@ -185,17 +226,17 @@ public class UserService implements UserDetailsService {
      * @return
      * @throws UserSecurityNotFoundException
      */
-    public UserSecurity changePassword(long id, String password) throws UserSecurityNotFoundException {
-        Optional<UserSecurity> userSecurity = this.userSecurityRepository.findById(id);
+    public User changePassword(long id, String password) throws UserSecurityNotFoundException {
+        Optional<User> user = this.userRepository.findById(id);
 
-        if (!userSecurity.isPresent()) {
-            throw new UserSecurityNotFoundException();
+        if (!user.isPresent()) {
+            throw new UserNotFoundException();
         }
 
         String encodedPassword = this.encodePassword(password);
-        userSecurity.get().setPassword(encodedPassword);
+        user.get().getUserSecurity().setPassword(encodedPassword);
 
-        return this.userSecurityRepository.save(userSecurity.get());
+        return this.userRepository.save(user.get());
     }
 
     /**
@@ -266,7 +307,7 @@ public class UserService implements UserDetailsService {
      * @param password
      * @return
      */
-    public String encodePassword(String password) {
+    private String encodePassword(String password) {
         return this.passwordEncoder.encode(this.saltPassword(password));
     }
 

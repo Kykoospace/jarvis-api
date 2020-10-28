@@ -1,12 +1,16 @@
 package jarvisapi.controller;
 
 import jarvisapi.entity.SignUpRequest;
+import jarvisapi.entity.SingleUseToken;
 import jarvisapi.entity.User;
 import jarvisapi.exception.SignUpRequestNotFoundException;
+import jarvisapi.exception.UserNotFoundException;
+import jarvisapi.payload.request.AccountActivationRequest;
 import jarvisapi.payload.request.EmailValidityRequest;
 import jarvisapi.payload.request.SignInRequest;
 import jarvisapi.payload.response.SignInResponse;
-import jarvisapi.security.JwtTokenUtil;
+import jarvisapi.utils.DateUtils;
+import jarvisapi.utils.JwtTokenUtil;
 import jarvisapi.service.SignUpRequestService;
 import jarvisapi.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -135,6 +139,23 @@ public class AuthController {
         } catch (SignUpRequestNotFoundException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (Exception exception) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @PostMapping("/activate-account")
+    public ResponseEntity accountActivation(@Valid @RequestBody AccountActivationRequest accountActivationRequest) {
+        try {
+            this.userService.activateAccount(
+                    accountActivationRequest.getEmail(),
+                    accountActivationRequest.getActivationToken(),
+                    accountActivationRequest.getPassword()
+            );
+
+            return ResponseEntity.status(HttpStatus.OK).body(null);
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }

@@ -34,20 +34,20 @@ public class Task {
     @Column(name = "priority")
     private int priority;
 
-    @Column(name = "expiration_date")
-    private Date expirationDate;
-
-    @Column(name = "reminding_date")
-    private Date remindingDate;
-
     @Column(name = "pinned")
     private boolean pinned;
 
     @Column(name = "checked")
     private boolean checked;
 
-    @Column(name = "check_date")
-    private Date checkDate;
+    @Column(name = "checking_date")
+    private Date checkingDate;
+
+    @Column(name = "expiration_date")
+    private Date expirationDate;
+
+    @Column(name = "reminding_date")
+    private Date remindingDate;
 
     @Column(name = "creation_date", nullable = false)
     private Date creationDate = new Date();
@@ -84,7 +84,7 @@ public class Task {
         this.remindingDate = remindingDate;
         this.pinned = pinned;
         this.checked = checked;
-        this.checkDate = (checked) ? new Date() : null;
+        this.checkingDate = (checked) ? new Date() : null;
         this.subTasks = subTasks;
         this.tags = tags;
         this.sharedWithUsers = sharedWithUsers;
