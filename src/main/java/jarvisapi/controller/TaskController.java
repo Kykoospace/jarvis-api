@@ -35,7 +35,7 @@ public class TaskController {
         return ResponseEntity.status(HttpStatus.OK).body(tasks);
     }
 
-    @GetMapping("/:id")
+    @GetMapping("/{id}")
     public ResponseEntity getUserTask(@PathVariable long idTask) {
         try {
             User user = this.userService.getUserFromContext();
@@ -64,7 +64,7 @@ public class TaskController {
         }
     }
 
-    @DeleteMapping("/:id")
+    @DeleteMapping("/{id}")
     public ResponseEntity deleteUserTask(@PathVariable long idTask) {
         try {
             User user = this.userService.getUserFromContext();

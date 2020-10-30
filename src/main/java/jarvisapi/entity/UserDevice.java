@@ -21,6 +21,9 @@ public class UserDevice {
     @Column(name = "mac_address")
     private String macAddress;
 
+    @Column(name = "public_ip")
+    private String publicIp;
+
     @Column(name = "type")
     private String type;
 
@@ -30,8 +33,9 @@ public class UserDevice {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "userDevice", fetch = FetchType.LAZY)
     private List<Connection> connections;
 
-    public UserDevice(String macAddress, String type) {
+    public UserDevice(String macAddress, String publicIp, String type) {
         this.macAddress = macAddress;
+        this.publicIp = publicIp;
         this.type = type;
     }
 }

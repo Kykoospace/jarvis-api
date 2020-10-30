@@ -26,38 +26,35 @@ public class SingleUseTokenService {
         return this.singleUseTokenRepository.save(singleUseToken);
     }
 
-    public SingleUseToken get(long id) {
-        Optional<SingleUseToken> singleUseToken = this.singleUseTokenRepository.findById(id);
-
-        if (!singleUseToken.isPresent()) {
-            throw new SingleUseTokenNotFoundException();
-        } else if (DateUtils.isDateExpired(singleUseToken.get().getExpirationDate())) {
-            throw new SingleUseTokenExpiredException();
-        }
-
-        return singleUseToken.get();
-    }
-
-    public void remove(long id) throws SingleUseTokenNotFoundException, SingleUseTokenExpiredException {
-        SingleUseToken singleUseToken = this.get(id);
-        this.singleUseTokenRepository.delete(singleUseToken);
-    }
-
-    /**
-     * Check the single use token validity by his expiration date
-     * @param id
-     * @return
-     * @throws SingleUseTokenNotFoundException
-     */
-    public boolean isSingleUseTokenValid(long id) throws SingleUseTokenNotFoundException {
+    public void delete(long id) throws SingleUseTokenNotFoundException, SingleUseTokenExpiredException {
         Optional<SingleUseToken> singleUseTokenOptional = this.singleUseTokenRepository.findById(id);
 
         if (!singleUseTokenOptional.isPresent()) {
             throw new SingleUseTokenNotFoundException();
         }
 
-        SingleUseToken singleUseToken = singleUseTokenOptional.get();
+        this.singleUseTokenRepository.delete(singleUseTokenOptional.get());
+    }
 
+    /**
+     * Check the single use token validity by his expiration date
+     * @param singleUseToken
+     * @return
+     * @throws SingleUseTokenNotFoundException
+     */
+    public boolean isSingleUseTokenValid(SingleUseToken singleUseToken) throws SingleUseTokenNotFoundException {
         return !DateUtils.isDateExpired(singleUseToken.getExpirationDate());
+    }
+
+    public boolean isSingleUseTokenVerified(SingleUseToken singleUseToken, String token) {
+        if (!singleUseToken.getToken().toString().equals(token)) {
+            return false;
+        }
+
+        if (!this.isSingleUseTokenValid(singleUseToken)) {
+            throw new SingleUseTokenExpiredException();
+        }
+
+        return true;
     }
 }

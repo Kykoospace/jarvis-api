@@ -1,5 +1,7 @@
 package jarvisapi.service;
 
+import com.sun.mail.util.MailConnectException;
+import freemarker.template.TemplateException;
 import jarvisapi.entity.SignUpRequest;
 import jarvisapi.entity.SingleUseToken;
 import jarvisapi.entity.User;
@@ -8,6 +10,8 @@ import jarvisapi.repository.SignUpRequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.mail.MessagingException;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -69,11 +73,11 @@ public class SignUpRequestService {
 
     /**
      * Accept SignUpRequest
-     * @param id
+     * @param signUpRequestId
      * @throws SignUpRequestNotFoundException
      */
-    public void accept(long id) throws SignUpRequestNotFoundException {
-        Optional<SignUpRequest> signUpRequestOptional = this.signUpRequestRepository.findById(id);
+    public void accept(long signUpRequestId) throws SignUpRequestNotFoundException, MessagingException, IOException, TemplateException {
+        Optional<SignUpRequest> signUpRequestOptional = this.signUpRequestRepository.findById(signUpRequestId);
 
         if (!signUpRequestOptional.isPresent()) {
             throw new SignUpRequestNotFoundException();
@@ -88,10 +92,7 @@ public class SignUpRequestService {
         );
 
         // Set the activation token:
-        this.userService.setNewActivationToken(user.getId());
-
-        // Send activation email:
-        // TODO: send activation email
+        this.userService.setNewActivationToken(user.getEmail());
 
         this.signUpRequestRepository.delete(signUpRequest);
     }

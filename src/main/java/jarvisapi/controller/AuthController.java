@@ -4,10 +4,10 @@ import jarvisapi.entity.SignUpRequest;
 import jarvisapi.entity.SingleUseToken;
 import jarvisapi.entity.User;
 import jarvisapi.exception.SignUpRequestNotFoundException;
+import jarvisapi.exception.SingleUseTokenExpiredException;
+import jarvisapi.exception.SingleUseTokenNotFoundException;
 import jarvisapi.exception.UserNotFoundException;
-import jarvisapi.payload.request.AccountActivationRequest;
-import jarvisapi.payload.request.EmailValidityRequest;
-import jarvisapi.payload.request.SignInRequest;
+import jarvisapi.payload.request.*;
 import jarvisapi.payload.response.SignInResponse;
 import jarvisapi.utils.DateUtils;
 import jarvisapi.utils.JwtTokenUtil;
@@ -21,6 +21,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.mail.MessagingException;
 import javax.validation.Valid;
 import java.util.List;
 
@@ -148,10 +149,45 @@ public class AuthController {
         try {
             this.userService.activateAccount(
                     accountActivationRequest.getEmail(),
-                    accountActivationRequest.getActivationToken(),
-                    accountActivationRequest.getPassword()
-            );
+                    accountActivationRequest.getToken(),
+                    accountActivationRequest.getPassword(),
+                    accountActivationRequest.getMacAddress(),
+                    accountActivationRequest.getPublicIp(),
+                    accountActivationRequest.getDeviceType());
 
+            return ResponseEntity.status(HttpStatus.OK).body(null);
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (SingleUseTokenNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (SingleUseTokenExpiredException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @PostMapping("/activate-account/check-token")
+    public ResponseEntity accountActivationCheckTokenValidity(@RequestBody AccountActivationTokenValidityRequest accountActivationTokenValidityRequest) {
+        try {
+            boolean isTokenValid = this.userService.checkAccountActivationTokenValidity(
+                    accountActivationTokenValidityRequest.getEmail(),
+                    accountActivationTokenValidityRequest.getToken());
+
+            return ResponseEntity.status(HttpStatus.OK).body(isTokenValid);
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (SingleUseTokenNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @PostMapping("/activate-account/new-token")
+    public ResponseEntity newAccountActivationToken(@RequestBody NewAccountActivationTokenRequest newAccountActivationTokenRequest) {
+        try {
+            this.userService.setNewActivationToken(newAccountActivationTokenRequest.getEmail());
             return ResponseEntity.status(HttpStatus.OK).body(null);
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);

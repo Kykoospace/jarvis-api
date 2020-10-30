@@ -1,5 +1,6 @@
 package jarvisapi.service;
 
+import freemarker.template.TemplateException;
 import jarvisapi.entity.*;
 import jarvisapi.exception.*;
 import jarvisapi.repository.UserDeviceRepository;
@@ -18,6 +19,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.mail.MessagingException;
+import java.io.IOException;
 import java.util.*;
 
 @Service
@@ -30,7 +33,13 @@ public class UserService implements UserDetailsService {
     private UserRepository userRepository;
 
     @Autowired
+    private UserSecurityRepository userSecurityRepository;
+
+    @Autowired
     private SingleUseTokenService singleUseTokenService;
+
+    @Autowired
+    private MailerService mailerService;
 
     @Autowired
     private UserDeviceRepository userDeviceRepository;
@@ -104,10 +113,7 @@ public class UserService implements UserDetailsService {
      * @param email
      * @return
      */
-    public User create(
-            String firstName,
-            String lastName,
-            String email
+    public User create(String firstName, String lastName, String email
     ) {
         // User security config with random password :
         String randomPassword = UUID.randomUUID().toString();
@@ -172,9 +178,8 @@ public class UserService implements UserDetailsService {
         return new UsernamePasswordAuthenticationToken(email, this.saltPassword(password));
     }
 
-    public User activateAccount(String email, String activationToken, String password)
+    public User activateAccount(String email, String accountActivationToken, String password, String macAddress, String publicIp, String deviceType)
             throws UserNotFoundException, SingleUseTokenNotFoundException, SingleUseTokenExpiredException {
-
         Optional<User> userOptional = this.userRepository.findByEmail(email);
 
         if (!userOptional.isPresent()) {
@@ -184,39 +189,70 @@ public class UserService implements UserDetailsService {
         User user = userOptional.get();
 
         // Token check:
-        SingleUseToken singleUseToken = user.getUserSecurity().getAccountValidationToken();
-        if (!singleUseToken.getToken().equals(activationToken)) {
+        if (!this.singleUseTokenService.isSingleUseTokenVerified(user.getUserSecurity().getAccountValidationToken(), accountActivationToken)) {
             throw new SingleUseTokenNotFoundException();
-        }
-        if (!this.singleUseTokenService.isSingleUseTokenValid(user.getUserSecurity().getAccountValidationToken().getId())) {
-            throw new SingleUseTokenExpiredException();
         }
 
         // Activate account:
-        user.getUserSecurity().setAccountValidationToken(null);
+        this.singleUseTokenService.delete(user.getUserSecurity().getAccountValidationToken().getId());
         user.getUserSecurity().setAccountEnabled(true);
         user.getUserSecurity().setPassword(this.encodePassword(password));
+
+        // Set new authorized device:
+        this.createFirstUserDevice(macAddress, publicIp, deviceType);
 
         return this.userRepository.save(user);
     }
 
-    /**
-     * Set a new activation single use token
-     * @param id
-     * @throws UserNotFoundException
-     */
-    public void setNewActivationToken(long id) throws UserNotFoundException {
-        Optional<User> userOptional = this.userRepository.findById(id);
+    public boolean checkAccountActivationTokenValidity(String email, String accountActivationToken)
+            throws UserNotFoundException, SingleUseTokenNotFoundException {
+        Optional<User> userOptional = this.userRepository.findByEmail(email);
 
         if (!userOptional.isPresent()) {
             throw new UserNotFoundException();
         }
 
         User user = userOptional.get();
-        SingleUseToken singleUseToken = this.singleUseTokenService.create();
-        user.getUserSecurity().setAccountValidationToken(singleUseToken);
 
-        this.userRepository.save(user);
+        // Token check
+        SingleUseToken singleUseToken = user.getUserSecurity().getAccountValidationToken();
+        if (!singleUseToken.getToken().toString().equals(accountActivationToken)) {
+            throw new SingleUseTokenNotFoundException();
+        }
+
+        return this.singleUseTokenService.isSingleUseTokenValid(singleUseToken);
+    }
+
+    /**
+     * Set a new activation single use token
+     * @param userEmail
+     * @throws UserNotFoundException
+     */
+    public void setNewActivationToken(String userEmail)
+            throws UserNotFoundException, MessagingException, IOException, TemplateException {
+        Optional<User> userOptional = this.userRepository.findByEmail(userEmail);
+
+        if (!userOptional.isPresent()) {
+            throw new UserNotFoundException();
+        }
+
+        User user = userOptional.get();
+        UserSecurity userSecurity = user.getUserSecurity();
+
+        // Set a new account activation token:
+        SingleUseToken singleUseToken = this.singleUseTokenService.create();
+        long lastTokenId = userSecurity.getAccountValidationToken().getId();
+        userSecurity.setAccountValidationToken(singleUseToken);
+
+        this.userSecurityRepository.save(userSecurity);
+
+        // Remove the last token
+        try {
+            this.singleUseTokenService.delete(lastTokenId);
+        } catch (Exception e) { }
+
+        // Send the account activation email:
+        this.mailerService.sendAccountActivationMail(user.getEmail(), singleUseToken.getToken().toString());
     }
 
     /**
@@ -265,11 +301,12 @@ public class UserService implements UserDetailsService {
     /**
      * Create user device
      * @param macAddress
-     * @param type
+     * @param publicIp
+     * @param deviceType
      * @return
      */
-    public UserDevice createUserDevice(String macAddress, String type) {
-        UserDevice userDevice = new UserDevice(macAddress, type);
+    public UserDevice createUserDevice(String macAddress, String publicIp, String deviceType) {
+        UserDevice userDevice = new UserDevice(macAddress, publicIp, deviceType);
 
         return this.userDeviceRepository.save(userDevice);
     }
@@ -277,11 +314,12 @@ public class UserService implements UserDetailsService {
     /**
      * Create first user device
      * @param macAddress
-     * @param type
+     * @param publicIp
+     * @param deviceType
      * @return
      */
-    public UserDevice createFirstUserDevice(String macAddress, String type) {
-        UserDevice userDevice = new UserDevice(macAddress, type);
+    public UserDevice createFirstUserDevice(String macAddress, String publicIp, String deviceType) {
+        UserDevice userDevice = new UserDevice(macAddress, publicIp, deviceType);
         userDevice.setAuthorized(true);
 
         return this.userDeviceRepository.save(userDevice);

@@ -16,9 +16,21 @@ public class AccountActivationRequest {
 
     @NotBlank
     @NotNull
-    private String activationToken;
+    private String token;
 
     @NotBlank
     @NotNull
     private String password;
+
+    @NotBlank
+    @NotNull
+    private String macAddress;
+
+    @NotBlank
+    @NotNull
+    private String publicIp;
+
+    @NotBlank
+    @NotNull
+    private String deviceType;
 }
