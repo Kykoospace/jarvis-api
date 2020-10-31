@@ -24,10 +24,6 @@ public class AccountActivationRequest {
 
     @NotBlank
     @NotNull
-    private String macAddress;
-
-    @NotBlank
-    @NotNull
     private String publicIp;
 
     @NotBlank

@@ -8,14 +8,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 @Service
@@ -30,19 +34,20 @@ public class MailerService {
     @Autowired
     private Configuration freemarkerConfig;
 
-    public void sendAccountActivationMail(String emailTo, String activationToken) throws MessagingException, IOException, TemplateException {
+    @Async
+    public void sendAccountActivationMail(String userFirstName, String emailTo, String activationToken) throws MessagingException, IOException, TemplateException {
         Mail mail = new Mail();
         mail.setMailFrom("kyllian.gt@hotmail.fr");
         mail.setMailTo("kyllian.gt@hotmail.fr");
         mail.setMailSubject("Email test");
 
-        String activationLink
-                = ACTIVATE_ACCOUNT_URL
-                + "activation?email=" + emailTo
-                + "activation&token=" + activationToken;
+        Map<String, String> params = new HashMap<String, String>();
+        params.put("email", emailTo);
+        params.put("token", activationToken);
+        String activationLink = this.encoreUrl(this.ACTIVATE_ACCOUNT_URL, params);
 
         Map model = new HashMap();
-        model.put("username", "Kyllian");
+        model.put("userFirstName", userFirstName);
         model.put("activateAccountUrl", activationLink);
         mail.setModel(model);
 
@@ -66,5 +71,22 @@ public class MailerService {
         helper.setFrom(mail.getMailFrom());
 
         emailSender.send(message);
+    }
+
+    private String encoreUrl(String baseUrl, Map<String, String> params) throws UnsupportedEncodingException {
+        String urlEncoded = baseUrl;
+
+        if (params.size() > 0) {
+            Iterator<Map.Entry<String, String>> iterator = params.entrySet().iterator();
+            Map.Entry<String, String> entry = iterator.next();
+            urlEncoded += "?" + entry.getKey() + "=" + URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8.toString());
+
+            while(iterator.hasNext()) {
+                entry = iterator.next();
+                urlEncoded += "&" + entry.getKey() + "=" + URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8.toString());
+            }
+        }
+
+        return urlEncoded;
     }
 }

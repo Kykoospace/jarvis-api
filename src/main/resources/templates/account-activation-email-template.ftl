@@ -16,10 +16,10 @@
         </style>
     </head>
     <body style="margin: 0; padding: 0;">
-        <h1>Bonjour ${username}</h1>
+        <h1>Bonjour ${ userFirstName }</h1>
         <div>
             <p>Suivre le lien suivant pour activer votre compte</p>
-            <a href="${activateAccountUrl}">Activer mon compte</a>
+            <a href="${ activateAccountUrl }">Activer mon compte</a>
         </div>
     </body>
 </html>

@@ -151,7 +151,6 @@ public class AuthController {
                     accountActivationRequest.getEmail(),
                     accountActivationRequest.getToken(),
                     accountActivationRequest.getPassword(),
-                    accountActivationRequest.getMacAddress(),
                     accountActivationRequest.getPublicIp(),
                     accountActivationRequest.getDeviceType());
 
@@ -187,8 +186,12 @@ public class AuthController {
     @PostMapping("/activate-account/new-token")
     public ResponseEntity newAccountActivationToken(@RequestBody NewAccountActivationTokenRequest newAccountActivationTokenRequest) {
         try {
-            this.userService.setNewActivationToken(newAccountActivationTokenRequest.getEmail());
-            return ResponseEntity.status(HttpStatus.OK).body(null);
+            if (!this.userService.getByUsername(newAccountActivationTokenRequest.getEmail()).getUserSecurity().isAccountEnabled()) {
+                this.userService.setNewActivationToken(newAccountActivationTokenRequest.getEmail());
+                return ResponseEntity.status(HttpStatus.OK).body(null);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            }
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (Exception e) {

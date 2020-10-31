@@ -178,7 +178,7 @@ public class UserService implements UserDetailsService {
         return new UsernamePasswordAuthenticationToken(email, this.saltPassword(password));
     }
 
-    public User activateAccount(String email, String accountActivationToken, String password, String macAddress, String publicIp, String deviceType)
+    public User activateAccount(String email, String accountActivationToken, String password, String publicIp, String deviceType)
             throws UserNotFoundException, SingleUseTokenNotFoundException, SingleUseTokenExpiredException {
         Optional<User> userOptional = this.userRepository.findByEmail(email);
 
@@ -187,6 +187,7 @@ public class UserService implements UserDetailsService {
         }
 
         User user = userOptional.get();
+        UserSecurity userSecurity = user.getUserSecurity();
 
         // Token check:
         if (!this.singleUseTokenService.isSingleUseTokenVerified(user.getUserSecurity().getAccountValidationToken(), accountActivationToken)) {
@@ -194,12 +195,15 @@ public class UserService implements UserDetailsService {
         }
 
         // Activate account:
-        this.singleUseTokenService.delete(user.getUserSecurity().getAccountValidationToken().getId());
-        user.getUserSecurity().setAccountEnabled(true);
-        user.getUserSecurity().setPassword(this.encodePassword(password));
+        long lastTokenId = userSecurity.getAccountValidationToken().getId();
+        userSecurity.setAccountEnabled(true);
+        userSecurity.setPassword(this.encodePassword(password));
+        userSecurity.setAccountValidationToken(null);
+        this.userSecurityRepository.save(userSecurity);
+        this.singleUseTokenService.delete(lastTokenId);
 
         // Set new authorized device:
-        this.createFirstUserDevice(macAddress, publicIp, deviceType);
+        this.createFirstUserDevice(user.getUserSecurity(), publicIp, deviceType);
 
         return this.userRepository.save(user);
     }
@@ -241,18 +245,16 @@ public class UserService implements UserDetailsService {
 
         // Set a new account activation token:
         SingleUseToken singleUseToken = this.singleUseTokenService.create();
-        long lastTokenId = userSecurity.getAccountValidationToken().getId();
+        try { // Remove the last token
+            long lastTokenId = userSecurity.getAccountValidationToken().getId();
+            this.singleUseTokenService.delete(lastTokenId);
+        } catch (Exception e) { }
         userSecurity.setAccountValidationToken(singleUseToken);
 
         this.userSecurityRepository.save(userSecurity);
 
-        // Remove the last token
-        try {
-            this.singleUseTokenService.delete(lastTokenId);
-        } catch (Exception e) { }
-
         // Send the account activation email:
-        this.mailerService.sendAccountActivationMail(user.getEmail(), singleUseToken.getToken().toString());
+        this.mailerService.sendAccountActivationMail(user.getFirstName(), user.getEmail(), singleUseToken.getToken().toString());
     }
 
     /**
@@ -300,26 +302,25 @@ public class UserService implements UserDetailsService {
 
     /**
      * Create user device
-     * @param macAddress
      * @param publicIp
      * @param deviceType
      * @return
      */
-    public UserDevice createUserDevice(String macAddress, String publicIp, String deviceType) {
-        UserDevice userDevice = new UserDevice(macAddress, publicIp, deviceType);
+    public UserDevice createUserDevice(String publicIp, String deviceType) {
+        UserDevice userDevice = new UserDevice(publicIp, deviceType);
 
         return this.userDeviceRepository.save(userDevice);
     }
 
     /**
      * Create first user device
-     * @param macAddress
      * @param publicIp
      * @param deviceType
      * @return
      */
-    public UserDevice createFirstUserDevice(String macAddress, String publicIp, String deviceType) {
-        UserDevice userDevice = new UserDevice(macAddress, publicIp, deviceType);
+    public UserDevice createFirstUserDevice(UserSecurity userSecurity, String publicIp, String deviceType) {
+        UserDevice userDevice = new UserDevice(publicIp, deviceType);
+        userDevice.setUserSecurity(userSecurity);
         userDevice.setAuthorized(true);
 
         return this.userDeviceRepository.save(userDevice);
