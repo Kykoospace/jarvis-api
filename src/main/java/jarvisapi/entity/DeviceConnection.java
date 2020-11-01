@@ -1,7 +1,10 @@
 package jarvisapi.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -9,20 +12,23 @@ import java.util.Date;
 @Entity
 @Getter
 @Setter
+@NoArgsConstructor
 public class DeviceConnection {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     private UserDevice userDevice;
 
     @Column(name = "success")
     private boolean success;
 
+    @CreationTimestamp
     @Column(name = "date")
-    private Date date = new Date();
+    private Date date;
 
     @Column(name = "browser")
     private String browser;

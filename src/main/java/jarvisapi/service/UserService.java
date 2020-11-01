@@ -281,26 +281,11 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Get user devices
+     * Get user devices of context user
      * @return
      */
-    public List<UserDevice> getUserDevices() {
-        return userDeviceRepository.findAll();
-    }
-
-    /**
-     * Get user device
-     * @param id
-     * @return
-     */
-    public UserDevice getUserDevice(long id) {
-        Optional<UserDevice> userDevice = this.userDeviceRepository.findById(id);
-
-        if (!userDevice.isPresent()) {
-            throw new UserDeviceNotFoundException();
-        }
-
-        return userDevice.get();
+    public List<UserDevice> getUserDevices(User user) {
+        return user.getUserSecurity().getDevices();
     }
 
     /**
@@ -326,7 +311,8 @@ public class UserService implements UserDetailsService {
     public UserDevice createFirstUserDevice(UserSecurity userSecurity, String publicIp, String deviceType) {
         UserDevice userDevice = new UserDevice(publicIp, deviceType);
         userDevice.setUserSecurity(userSecurity);
-        userDevice.setAuthorized(true);
+        userDevice.setVerified(true);
+        userDevice.setVerificationDate(new Date());
 
         return this.userDeviceRepository.save(userDevice);
     }
@@ -340,7 +326,7 @@ public class UserService implements UserDetailsService {
 
         UserDevice userDevice = userDeviceOpt.get();
 
-        if (userDevice.isAuthorized()) {
+        if (userDevice.isVerified()) {
             return userDevice;
         }
 
@@ -358,7 +344,7 @@ public class UserService implements UserDetailsService {
         if (!userDeviceOpt.isPresent()) {
             Optional<User> userOpt = this.userRepository.findByEmail(userEmail);
 
-            if (!userOpt.isPresent()) {
+            if (!userOpt.isPresent() || !userOpt.get().getUserSecurity().isAccountEnabled()) {
                 throw new UserNotFoundException();
             }
 

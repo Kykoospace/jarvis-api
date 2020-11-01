@@ -4,7 +4,6 @@ import freemarker.template.TemplateException;
 import jarvisapi.entity.DeviceConnection;
 import jarvisapi.entity.SignUpRequest;
 import jarvisapi.entity.User;
-import jarvisapi.entity.UserDevice;
 import jarvisapi.exception.*;
 import jarvisapi.payload.request.*;
 import jarvisapi.payload.response.SignInResponse;
@@ -25,7 +24,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -91,6 +89,8 @@ public class AuthController {
                     user);
 
             return ResponseEntity.status(HttpStatus.OK).body(signInResponse);
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         } catch (AuthenticationException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         } catch (UserDeviceNotAuthorizedException e) {

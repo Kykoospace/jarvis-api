@@ -24,9 +24,9 @@ public class AccountActivationRequest {
 
     @NotBlank
     @NotNull
-    private String publicIp;
+    private String deviceType;
 
     @NotBlank
     @NotNull
-    private String deviceType;
+    private String browser;
 }

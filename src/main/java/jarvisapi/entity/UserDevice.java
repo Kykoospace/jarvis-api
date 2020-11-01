@@ -1,10 +1,14 @@
 package jarvisapi.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
 
 import javax.persistence.*;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,6 +22,7 @@ public class UserDevice {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @JsonIgnore
     @ManyToOne(fetch= FetchType.LAZY)
     private UserSecurity userSecurity;
 
@@ -27,9 +32,17 @@ public class UserDevice {
     @Column(name = "type")
     private String type;
 
-    @Column(name = "authorized")
-    private boolean authorized = false;
+    @Column(name = "verified")
+    private boolean verified = false;
 
+    @Column(name = "verification_date")
+    private Date verificationDate;
+
+    @Column(name = "creation_date")
+    @CreationTimestamp
+    private Date creationDate;
+
+    @JsonIgnore
     @OneToOne(cascade = CascadeType.ALL)
     public SingleUseToken verificationToken;
 
