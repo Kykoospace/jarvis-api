@@ -1,15 +1,13 @@
 package jarvisapi.controller;
 
+import freemarker.template.TemplateException;
+import jarvisapi.entity.DeviceConnection;
 import jarvisapi.entity.SignUpRequest;
-import jarvisapi.entity.SingleUseToken;
 import jarvisapi.entity.User;
-import jarvisapi.exception.SignUpRequestNotFoundException;
-import jarvisapi.exception.SingleUseTokenExpiredException;
-import jarvisapi.exception.SingleUseTokenNotFoundException;
-import jarvisapi.exception.UserNotFoundException;
+import jarvisapi.entity.UserDevice;
+import jarvisapi.exception.*;
 import jarvisapi.payload.request.*;
 import jarvisapi.payload.response.SignInResponse;
-import jarvisapi.utils.DateUtils;
 import jarvisapi.utils.JwtTokenUtil;
 import jarvisapi.service.SignUpRequestService;
 import jarvisapi.service.UserService;
@@ -18,12 +16,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.mail.MessagingException;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.io.IOException;
 import java.util.List;
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -64,35 +66,42 @@ public class AuthController {
     }
 
     @PostMapping("/sign-in")
-    public ResponseEntity signIn(@Valid @RequestBody SignInRequest signInRequest) {
-        /*
-         * TODO: User connection
-         * Verify user password
-         * If the connection is authorized :
-         *  Check authorized devices
-         *  If this device is authorized :
-         *   Save the new connection history
-         *   Return JWT
-         *  Else
-         *   Return forbidden access
-         * Else
-         *  Return forbidden access
-         */
-        final Authentication authentication = authenticationManager.authenticate(
-                this.userService.getUserAuthentication(signInRequest.getEmail(), signInRequest.getPassword())
-        );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+    public ResponseEntity signIn(@Valid @RequestBody SignInRequest signInRequest, HttpServletRequest httpServletRequest) {
+        try {
+            // New Connexion registration:
+            DeviceConnection deviceConnection = this.userService.registerConnexion(signInRequest.getEmail(), httpServletRequest.getRemoteAddr(), signInRequest.getDeviceType(), signInRequest.getBrowser());
 
-        User user = this.userService.getByUsername(authentication.getName());
+            // Authentication validation:
+            final Authentication authentication = authenticationManager.authenticate(
+                    this.userService.getUserAuthentication(signInRequest.getEmail(), signInRequest.getPassword())
+            );
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        return ResponseEntity.ok(
-                new SignInResponse(
-                        jwtTokenUtil.generateToken(authentication),
-                        "",
-                        user.getUserSecurity().isAdmin(),
-                        user
-                )
-        );
+            // Updating connection success if authentication is validated:
+            this.userService.setDeviceConnectionSuccessful(deviceConnection);
+
+            // User trust device validation:
+            User user = this.userService.getByUsername(authentication.getName());
+            this.userService.checkUserDevice(user, httpServletRequest.getRemoteAddr());
+
+            SignInResponse signInResponse = new SignInResponse(
+                    jwtTokenUtil.generateToken(authentication),
+                    "",
+                    user.getUserSecurity().isAdmin(),
+                    user);
+
+            return ResponseEntity.status(HttpStatus.OK).body(signInResponse);
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        } catch (UserDeviceNotAuthorizedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        } catch (MessagingException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("messaging exception");
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("io exception");
+        } catch (TemplateException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("template exception");
+        }
     }
 
     @GetMapping("/sign-up-request")
@@ -145,13 +154,13 @@ public class AuthController {
     }
 
     @PostMapping("/activate-account")
-    public ResponseEntity accountActivation(@Valid @RequestBody AccountActivationRequest accountActivationRequest) {
+    public ResponseEntity accountActivation(@Valid @RequestBody AccountActivationRequest accountActivationRequest, HttpServletRequest request) {
         try {
             this.userService.activateAccount(
                     accountActivationRequest.getEmail(),
                     accountActivationRequest.getToken(),
                     accountActivationRequest.getPassword(),
-                    accountActivationRequest.getPublicIp(),
+                    request.getRemoteAddr(),
                     accountActivationRequest.getDeviceType());
 
             return ResponseEntity.status(HttpStatus.OK).body(null);

@@ -3,14 +3,14 @@ package jarvisapi.service;
 import freemarker.template.TemplateException;
 import jarvisapi.entity.*;
 import jarvisapi.exception.*;
+import jarvisapi.repository.DeviceConnectionRepository;
 import jarvisapi.repository.UserDeviceRepository;
 import jarvisapi.repository.UserRepository;
 import jarvisapi.repository.UserSecurityRepository;
+import jarvisapi.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -43,6 +43,9 @@ public class UserService implements UserDetailsService {
 
     @Autowired
     private UserDeviceRepository userDeviceRepository;
+
+    @Autowired
+    private DeviceConnectionRepository deviceConnectionRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -306,8 +309,10 @@ public class UserService implements UserDetailsService {
      * @param deviceType
      * @return
      */
-    public UserDevice createUserDevice(String publicIp, String deviceType) {
+    public UserDevice createUserDevice(UserSecurity userSecurity, String publicIp, String deviceType) {
         UserDevice userDevice = new UserDevice(publicIp, deviceType);
+        userDevice.setUserSecurity(userSecurity);
+        userDevice.setVerificationToken(this.singleUseTokenService.create());
 
         return this.userDeviceRepository.save(userDevice);
     }
@@ -324,6 +329,50 @@ public class UserService implements UserDetailsService {
         userDevice.setAuthorized(true);
 
         return this.userDeviceRepository.save(userDevice);
+    }
+
+    public UserDevice checkUserDevice(User user, String publicIp) throws UserDeviceNotFoundException, MessagingException, IOException, TemplateException {
+        Optional<UserDevice> userDeviceOpt = this.userDeviceRepository.getByUserEmailAndPublicIp(user.getEmail(), publicIp);
+
+        if (!userDeviceOpt.isPresent()) {
+            throw new UserDeviceNotFoundException();
+        }
+
+        UserDevice userDevice = userDeviceOpt.get();
+
+        if (userDevice.isAuthorized()) {
+            return userDevice;
+        }
+
+        this.mailerService.sendTrustDeviceVerificationMail(
+                user.getFirstName(),
+                user.getEmail(),
+                userDevice.getVerificationToken().getToken().toString());
+
+        throw new UserDeviceNotAuthorizedException();
+    }
+
+    public DeviceConnection registerConnexion(String userEmail, String publicIp, String deviceType, String browser) {
+        Optional<UserDevice> userDeviceOpt = this.userDeviceRepository.getByUserEmailAndPublicIp(userEmail, publicIp);
+
+        if (!userDeviceOpt.isPresent()) {
+            Optional<User> userOpt = this.userRepository.findByEmail(userEmail);
+
+            if (!userOpt.isPresent()) {
+                throw new UserNotFoundException();
+            }
+
+            UserDevice newUserDevice = this.createUserDevice(userOpt.get().getUserSecurity(), publicIp, deviceType);
+            userDeviceOpt = this.userDeviceRepository.findById(newUserDevice.getId());
+        }
+
+        DeviceConnection deviceConnection = new DeviceConnection(userDeviceOpt.get(), browser);
+        return this.deviceConnectionRepository.save(deviceConnection);
+    }
+
+    public DeviceConnection setDeviceConnectionSuccessful(DeviceConnection deviceConnection) {
+        deviceConnection.setSuccess(true);
+        return this.deviceConnectionRepository.save(deviceConnection);
     }
 
     @Override

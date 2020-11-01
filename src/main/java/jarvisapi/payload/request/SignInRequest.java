@@ -17,4 +17,12 @@ public class SignInRequest {
     @NotBlank
     @NotNull
     private String password;
+
+    @NotBlank
+    @NotNull
+    private String deviceType;
+
+    @NotBlank
+    @NotNull
+    private String browser;
 }

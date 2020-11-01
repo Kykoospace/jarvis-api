@@ -28,6 +28,9 @@ public class MailerService {
     @Value("${spring.front.activateAccountUrl}")
     private String ACTIVATE_ACCOUNT_URL;
 
+    @Value("${spring.mail.username}")
+    private String NO_REPLY_EMAIL;
+
     @Autowired
     private JavaMailSender emailSender;
 
@@ -35,23 +38,34 @@ public class MailerService {
     private Configuration freemarkerConfig;
 
     @Async
-    public void sendAccountActivationMail(String userFirstName, String emailTo, String activationToken) throws MessagingException, IOException, TemplateException {
-        Mail mail = new Mail();
-        mail.setMailFrom("kyllian.gt@hotmail.fr");
-        mail.setMailTo("kyllian.gt@hotmail.fr");
-        mail.setMailSubject("Email test");
+    public void sendAccountActivationMail(String userFirstName, String userEmail, String activationToken) throws MessagingException, IOException, TemplateException {
+        Mail mail = this.createMail(userEmail, "Account activation");
 
-        Map<String, String> params = new HashMap<String, String>();
-        params.put("email", emailTo);
-        params.put("token", activationToken);
-        String activationLink = this.encoreUrl(this.ACTIVATE_ACCOUNT_URL, params);
+        // Link construction:
+        Map<String, String> urlParams = new HashMap<>();
+        urlParams.put("email", userEmail);
+        urlParams.put("token", activationToken);
+        String activationLink = this.encoreUrl(this.ACTIVATE_ACCOUNT_URL, urlParams);
 
-        Map model = new HashMap();
-        model.put("userFirstName", userFirstName);
-        model.put("activateAccountUrl", activationLink);
-        mail.setModel(model);
+        // Model parameters:
+        Map<String, Object> modelParams = new HashMap();
+        modelParams.put("userFirstName", userFirstName);
+        modelParams.put("activateAccountUrl", activationLink);
+        mail.setModel(modelParams);
 
         this.sendSimpleMessage(mail, "account-activation-email-template.ftl");
+    }
+
+    public void sendTrustDeviceVerificationMail(String userFirstName, String userEmail, String verificationToken) throws MessagingException, IOException, TemplateException {
+        Mail mail = this.createMail(userEmail, "Device verification");
+
+        // Model parameters:
+        Map<String, Object> modelParams = new HashMap();
+        modelParams.put("userFirstName", userFirstName);
+        modelParams.put("secretCode", verificationToken);
+        mail.setModel(modelParams);
+
+        this.sendSimpleMessage(mail, "device-verification-email-template.ftl");
     }
 
     private void sendSimpleMessage(Mail mail, String emailTemplate) throws MessagingException, IOException, TemplateException {
@@ -88,5 +102,14 @@ public class MailerService {
         }
 
         return urlEncoded;
+    }
+
+    private Mail createMail(String emailTo, String subject) {
+        Mail mail = new Mail();
+        mail.setMailFrom(NO_REPLY_EMAIL);
+        mail.setMailTo(emailTo);
+        mail.setMailSubject(subject);
+
+        return mail;
     }
 }
