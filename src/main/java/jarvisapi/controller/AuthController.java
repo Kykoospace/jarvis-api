@@ -1,9 +1,8 @@
 package jarvisapi.controller;
 
-import freemarker.template.TemplateException;
+import jarvisapi.dto.UserDTO;
 import jarvisapi.entity.DeviceConnection;
 import jarvisapi.entity.SignUpRequest;
-import jarvisapi.entity.User;
 import jarvisapi.exception.*;
 import jarvisapi.payload.request.*;
 import jarvisapi.payload.response.SignInResponse;
@@ -19,10 +18,8 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -76,31 +73,28 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             // Updating connection success if authentication is validated:
-            this.userService.setDeviceConnectionSuccessful(deviceConnection);
+            this.userService.setDeviceCredentialConnectionSuccessful(deviceConnection);
 
             // User trust device validation:
-            User user = this.userService.getByUsername(authentication.getName());
-            this.userService.checkUserDevice(user, httpServletRequest.getRemoteAddr());
+            UserDTO userDTO = this.userService.getByUsername(authentication.getName());
+            this.userService.checkUserDevice(authentication.getName(), httpServletRequest.getRemoteAddr());
+
+            // Updating connection success if device is verified:
+            this.userService.setDeviceConnectionSuccessful(deviceConnection);
 
             SignInResponse signInResponse = new SignInResponse(
                     jwtTokenUtil.generateToken(authentication),
                     "",
-                    user.getUserSecurity().isAdmin(),
-                    user);
+                    userDTO.isAdmin(),
+                    userDTO);
 
             return ResponseEntity.status(HttpStatus.OK).body(signInResponse);
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
-        } catch (AuthenticationException e) {
+        } catch (UserNotFoundException | AuthenticationException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         } catch (UserDeviceNotAuthorizedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
-        } catch (MessagingException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("messaging exception");
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("io exception");
-        } catch (TemplateException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("template exception");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
@@ -195,13 +189,9 @@ public class AuthController {
     @PostMapping("/activate-account/new-token")
     public ResponseEntity newAccountActivationToken(@RequestBody NewAccountActivationTokenRequest newAccountActivationTokenRequest) {
         try {
-            if (!this.userService.getByUsername(newAccountActivationTokenRequest.getEmail()).getUserSecurity().isAccountEnabled()) {
-                this.userService.setNewActivationToken(newAccountActivationTokenRequest.getEmail());
-                return ResponseEntity.status(HttpStatus.OK).body(null);
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-            }
-        } catch (UserNotFoundException e) {
+            this.userService.requestNewActivationToken(newAccountActivationTokenRequest.getEmail());
+            return ResponseEntity.status(HttpStatus.OK).body(null);
+        } catch (UserNotFoundException | UserAccountDisabledException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);

@@ -1,6 +1,6 @@
 package jarvisapi.payload.response;
 
-import jarvisapi.entity.User;
+import jarvisapi.dto.UserDTO;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,5 +12,5 @@ public class SignInResponse {
     private String token;
     private String refreshToken;
     private boolean isAdmin;
-    private User user;
+    private UserDTO user;
 }

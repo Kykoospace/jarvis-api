@@ -64,7 +64,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             } catch (UsernameNotFoundException e) {
                 logger.error("username not found");
             }
-            System.out.println(userDetails.getAuthorities());
 
             if (jwtTokenUtil.validateToken(authToken, userDetails)) {
                 final UsernamePasswordAuthenticationToken authentication = jwtTokenUtil.getAuthentication(authToken, userDetails);

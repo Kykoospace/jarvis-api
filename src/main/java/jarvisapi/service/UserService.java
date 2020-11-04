@@ -1,13 +1,16 @@
 package jarvisapi.service;
 
 import freemarker.template.TemplateException;
+import jarvisapi.dto.UserDTO;
+import jarvisapi.dto.UserDeviceDTO;
 import jarvisapi.entity.*;
 import jarvisapi.exception.*;
+import jarvisapi.mapper.UserDeviceMapper;
+import jarvisapi.mapper.UserMapper;
 import jarvisapi.repository.DeviceConnectionRepository;
 import jarvisapi.repository.UserDeviceRepository;
 import jarvisapi.repository.UserRepository;
 import jarvisapi.repository.UserSecurityRepository;
-import jarvisapi.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,6 +33,12 @@ public class UserService implements UserDetailsService {
     private String PASSWORD_SALT;
 
     @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private UserDeviceMapper userDeviceMapper;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -50,7 +59,12 @@ public class UserService implements UserDetailsService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public User getUserFromContext() throws UserNotFoundException {
+    /**
+     * Get user from context
+     * @return
+     * @throws UserNotFoundException
+     */
+    public UserDTO getUserFromContext() throws UserNotFoundException {
         org.springframework.security.core.userdetails.User userDetails = (org.springframework.security.core.userdetails.User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Optional<User> user = this.userRepository.findByEmail(userDetails.getUsername());
 
@@ -58,15 +72,16 @@ public class UserService implements UserDetailsService {
             throw new UserNotFoundException();
         }
 
-        return user.get();
+        return this.userMapper.toUserDTO(user.get());
     }
 
     /**
      * Get all User
      * @return
      */
-    public List<User> getAll() {
-        return this.userRepository.findAll();
+    public List<UserDTO> getAll() {
+        List<User> users = this.userRepository.findAll();
+        return this.userMapper.toUserDTO(users);
     }
 
     /**
@@ -74,14 +89,14 @@ public class UserService implements UserDetailsService {
      * @param id
      * @return
      */
-    public User get(long id) throws UserNotFoundException {
+    public UserDTO get(long id) throws UserNotFoundException {
         Optional<User> user = this.userRepository.findById(id);
 
         if (!user.isPresent()) {
             throw new UserNotFoundException();
         }
 
-        return user.get();
+        return this.userMapper.toUserDTO(user.get());
     }
 
     /**
@@ -89,24 +104,16 @@ public class UserService implements UserDetailsService {
      * @param username
      * @return
      */
-    public User getByUsername(String username) throws UserNotFoundException {
-        Optional<User> user = this.userRepository.findByEmail(username);
+    public UserDTO getByUsername(String username) throws UserNotFoundException {
+        Optional<User> userOpt = this.userRepository.findByEmail(username);
 
-        if (!user.isPresent()) {
+        if (!userOpt.isPresent()) {
             throw new UserNotFoundException();
         }
 
-        return user.get();
-    }
+        User user = userOpt.get();
 
-    /**
-     * Check if email is available
-     * @param email
-     * @return
-     */
-    public boolean isEmailAvailable(String email) {
-        Optional<User> user = this.userRepository.findByEmail(email);
-        return !user.isPresent();
+        return this.userMapper.toUserDTO(user);
     }
 
     /**
@@ -133,30 +140,6 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Update User
-     * @param id
-     * @param firstName
-     * @param lastName
-     * @param email
-     * @return
-     * @throws UserNotFoundException
-     */
-    public User update(long id, String firstName, String lastName, String email) throws UserNotFoundException {
-        Optional<User> user = this.userRepository.findById(id);
-
-        if (!user.isPresent()) {
-            throw new UserNotFoundException();
-        }
-
-        // Update fields :
-        user.get().setFirstName(firstName);
-        user.get().setLastName(lastName);
-        user.get().setEmail(email);
-
-        return this.userRepository.save(user.get());
-    }
-
-    /**
      * Delete User
      * @param id
      * @throws UserNotFoundException
@@ -172,6 +155,16 @@ public class UserService implements UserDetailsService {
     }
 
     /**
+     * Check if email is available
+     * @param email
+     * @return
+     */
+    public boolean isEmailAvailable(String email) {
+        Optional<User> user = this.userRepository.findByEmail(email);
+        return !user.isPresent();
+    }
+
+    /**
      * Get User authentication
      * @param email
      * @param password
@@ -181,6 +174,18 @@ public class UserService implements UserDetailsService {
         return new UsernamePasswordAuthenticationToken(email, this.saltPassword(password));
     }
 
+    /**
+     * Activate account
+     * @param email
+     * @param accountActivationToken
+     * @param password
+     * @param publicIp
+     * @param deviceType
+     * @return
+     * @throws UserNotFoundException
+     * @throws SingleUseTokenNotFoundException
+     * @throws SingleUseTokenExpiredException
+     */
     public User activateAccount(String email, String accountActivationToken, String password, String publicIp, String deviceType)
             throws UserNotFoundException, SingleUseTokenNotFoundException, SingleUseTokenExpiredException {
         Optional<User> userOptional = this.userRepository.findByEmail(email);
@@ -211,6 +216,14 @@ public class UserService implements UserDetailsService {
         return this.userRepository.save(user);
     }
 
+    /**
+     * Check account activation token validity
+     * @param email
+     * @param accountActivationToken
+     * @return
+     * @throws UserNotFoundException
+     * @throws SingleUseTokenNotFoundException
+     */
     public boolean checkAccountActivationTokenValidity(String email, String accountActivationToken)
             throws UserNotFoundException, SingleUseTokenNotFoundException {
         Optional<User> userOptional = this.userRepository.findByEmail(email);
@@ -221,7 +234,7 @@ public class UserService implements UserDetailsService {
 
         User user = userOptional.get();
 
-        // Token check
+        // Token check:
         SingleUseToken singleUseToken = user.getUserSecurity().getAccountValidationToken();
         if (!singleUseToken.getToken().toString().equals(accountActivationToken)) {
             throw new SingleUseTokenNotFoundException();
@@ -231,19 +244,35 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Set a new activation single use token
+     * Request a new account activation token and send email
      * @param userEmail
-     * @throws UserNotFoundException
+     * @throws MessagingException
+     * @throws IOException
+     * @throws TemplateException
      */
-    public void setNewActivationToken(String userEmail)
-            throws UserNotFoundException, MessagingException, IOException, TemplateException {
-        Optional<User> userOptional = this.userRepository.findByEmail(userEmail);
+    public void requestNewActivationToken(String userEmail) throws MessagingException, IOException, TemplateException {
+        Optional<User> userOpt = this.userRepository.findByEmail(userEmail);
 
-        if (!userOptional.isPresent()) {
+        if (!userOpt.isPresent()) {
             throw new UserNotFoundException();
         }
 
-        User user = userOptional.get();
+        User user = userOpt.get();
+        if (!user.getUserSecurity().isAccountEnabled()) {
+            throw new UserAccountDisabledException();
+        }
+
+        this.setActivationToken(user);
+        this.sendAccountActivationEmail(user);
+    }
+
+    /**
+     * Set a new activation single use token and send email
+     * @param user
+     * @throws UserNotFoundException
+     */
+    public void setActivationToken(User user)
+            throws UserNotFoundException, MessagingException, IOException, TemplateException {
         UserSecurity userSecurity = user.getUserSecurity();
 
         // Set a new account activation token:
@@ -255,9 +284,20 @@ public class UserService implements UserDetailsService {
         userSecurity.setAccountValidationToken(singleUseToken);
 
         this.userSecurityRepository.save(userSecurity);
+    }
 
-        // Send the account activation email:
-        this.mailerService.sendAccountActivationMail(user.getFirstName(), user.getEmail(), singleUseToken.getToken().toString());
+    /**
+     * Send account activation email
+     * @param user
+     * @throws MessagingException
+     * @throws IOException
+     * @throws TemplateException
+     */
+    public void sendAccountActivationEmail(User user) throws MessagingException, IOException, TemplateException {
+        this.mailerService.sendAccountActivationMail(
+                user.getFirstName(),
+                user.getEmail(),
+                user.getUserSecurity().getAccountValidationToken().getToken().toString());
     }
 
     /**
@@ -284,8 +324,10 @@ public class UserService implements UserDetailsService {
      * Get user devices of context user
      * @return
      */
-    public List<UserDevice> getUserDevices(User user) {
-        return user.getUserSecurity().getDevices();
+    public List<UserDeviceDTO> getUserDevices(long userId) {
+        User user = this.userRepository.getOne(userId);
+        List<UserDevice> userDevices = user.getUserSecurity().getDevices();
+        return this.userDeviceMapper.toUserDTO(userDevices);
     }
 
     /**
@@ -317,13 +359,28 @@ public class UserService implements UserDetailsService {
         return this.userDeviceRepository.save(userDevice);
     }
 
-    public UserDevice checkUserDevice(User user, String publicIp) throws UserDeviceNotFoundException, MessagingException, IOException, TemplateException {
-        Optional<UserDevice> userDeviceOpt = this.userDeviceRepository.getByUserEmailAndPublicIp(user.getEmail(), publicIp);
+    /**
+     * Check user device
+     * @param userEmail
+     * @param publicIp
+     * @return
+     * @throws UserDeviceNotFoundException
+     * @throws MessagingException
+     * @throws IOException
+     * @throws TemplateException
+     */
+    public UserDevice checkUserDevice(String userEmail, String publicIp) throws UserDeviceNotFoundException, MessagingException, IOException, TemplateException {
+        Optional<User> userOpt = this.userRepository.findByEmail(userEmail);
+        Optional<UserDevice> userDeviceOpt = this.userDeviceRepository.getByUserEmailAndPublicIp(userEmail, publicIp);
 
+        if (!userOpt.isPresent()) {
+            throw new UserNotFoundException();
+        }
         if (!userDeviceOpt.isPresent()) {
             throw new UserDeviceNotFoundException();
         }
 
+        User user = userOpt.get();
         UserDevice userDevice = userDeviceOpt.get();
 
         if (userDevice.isVerified()) {
@@ -338,6 +395,14 @@ public class UserService implements UserDetailsService {
         throw new UserDeviceNotAuthorizedException();
     }
 
+    /**
+     * Register connection
+     * @param userEmail
+     * @param publicIp
+     * @param deviceType
+     * @param browser
+     * @return
+     */
     public DeviceConnection registerConnexion(String userEmail, String publicIp, String deviceType, String browser) {
         Optional<UserDevice> userDeviceOpt = this.userDeviceRepository.getByUserEmailAndPublicIp(userEmail, publicIp);
 
@@ -356,11 +421,30 @@ public class UserService implements UserDetailsService {
         return this.deviceConnectionRepository.save(deviceConnection);
     }
 
-    public DeviceConnection setDeviceConnectionSuccessful(DeviceConnection deviceConnection) {
-        deviceConnection.setSuccess(true);
-        return this.deviceConnectionRepository.save(deviceConnection);
+    /**
+     * Set device credentialConnection successful
+     * @param deviceConnection
+     */
+    public void setDeviceCredentialConnectionSuccessful(DeviceConnection deviceConnection) {
+        deviceConnection.setCredentialSuccess(true);
+        this.deviceConnectionRepository.save(deviceConnection);
     }
 
+    /**
+     * Set device connection successful
+     * @param deviceConnection
+     */
+    public void setDeviceConnectionSuccessful(DeviceConnection deviceConnection) {
+        deviceConnection.setSuccess(true);
+        this.deviceConnectionRepository.save(deviceConnection);
+    }
+
+    /**
+     * Load user by username
+     * @param userEmail
+     * @return
+     * @throws UsernameNotFoundException
+     */
     @Override
     public UserDetails loadUserByUsername(String userEmail) throws UsernameNotFoundException {
         Optional<User> user = this.userRepository.findByEmail(userEmail);

@@ -23,6 +23,9 @@ public class DeviceConnection {
     @ManyToOne(fetch = FetchType.LAZY)
     private UserDevice userDevice;
 
+    @Column(name = "credential_success")
+    private boolean credentialSuccess;
+
     @Column(name = "success")
     private boolean success;
 
@@ -38,17 +41,8 @@ public class DeviceConnection {
             String browser
     ) {
         this.userDevice = userDevice;
+        this.credentialSuccess = false;
         this.success = false;
-        this.browser = browser;
-    }
-
-    public DeviceConnection(
-            UserDevice userDevice,
-            boolean success,
-            String browser
-    ) {
-        this.userDevice = userDevice;
-        this.success = success;
         this.browser = browser;
     }
 }

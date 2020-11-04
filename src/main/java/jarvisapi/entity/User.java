@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
+import java.util.Date;
 import java.util.List;
 
 @Getter
@@ -27,24 +29,23 @@ public class User {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @JsonIgnore
+    @CreationTimestamp
+    @Column(name = "subscription_date")
+    private Date subscriptionDate;
+
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_security", referencedColumnName = "id", nullable = false)
     private UserSecurity userSecurity;
 
-    @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
     private List<Task> tasks;
 
-    @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
     private List<TaskCollection> taskCollections;
 
-    @JsonIgnore
     @ManyToMany(mappedBy = "sharedWithUsers")
     private List<Task> tasksSharedToUser;
 
-    @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
     private List<TaskTag> taskTags;
 

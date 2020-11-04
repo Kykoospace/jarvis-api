@@ -1,9 +1,7 @@
 package jarvisapi.service;
 
-import com.sun.mail.util.MailConnectException;
 import freemarker.template.TemplateException;
 import jarvisapi.entity.SignUpRequest;
-import jarvisapi.entity.SingleUseToken;
 import jarvisapi.entity.User;
 import jarvisapi.exception.SignUpRequestNotFoundException;
 import jarvisapi.repository.SignUpRequestRepository;
@@ -27,9 +25,8 @@ public class SignUpRequestService {
     /**
      * Get all SignUpRequest
      * @return
-     * @throws SignUpRequestNotFoundException
      */
-    public List<SignUpRequest> getAll() throws SignUpRequestNotFoundException {
+    public List<SignUpRequest> getAll() {
         return this.signUpRequestRepository.findAll();
     }
 
@@ -72,9 +69,12 @@ public class SignUpRequestService {
     }
 
     /**
-     * Accept SignUpRequest
+     * Accept sign up request and send account activation email
      * @param signUpRequestId
      * @throws SignUpRequestNotFoundException
+     * @throws MessagingException
+     * @throws IOException
+     * @throws TemplateException
      */
     public void accept(long signUpRequestId) throws SignUpRequestNotFoundException, MessagingException, IOException, TemplateException {
         Optional<SignUpRequest> signUpRequestOptional = this.signUpRequestRepository.findById(signUpRequestId);
@@ -92,7 +92,8 @@ public class SignUpRequestService {
         );
 
         // Set the activation token:
-        this.userService.setNewActivationToken(user.getEmail());
+        this.userService.setActivationToken(user);
+        this.userService.sendAccountActivationEmail(user);
 
         this.signUpRequestRepository.delete(signUpRequest);
     }

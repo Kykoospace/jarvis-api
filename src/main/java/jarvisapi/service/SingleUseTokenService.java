@@ -20,12 +20,22 @@ public class SingleUseTokenService {
     @Autowired
     private SingleUseTokenRepository singleUseTokenRepository;
 
+    /**
+     * Create signel use token
+     * @return SingleUseToken
+     */
     public SingleUseToken create() {
         SingleUseToken singleUseToken = new SingleUseToken(DateUtils.getExpirationDate(SUT_EXPIRATION));
 
         return this.singleUseTokenRepository.save(singleUseToken);
     }
 
+    /**
+     * Delete single use token
+     * @param id
+     * @throws SingleUseTokenNotFoundException
+     * @throws SingleUseTokenExpiredException
+     */
     public void delete(long id) throws SingleUseTokenNotFoundException, SingleUseTokenExpiredException {
         Optional<SingleUseToken> singleUseTokenOptional = this.singleUseTokenRepository.findById(id);
 
@@ -39,7 +49,7 @@ public class SingleUseTokenService {
     /**
      * Check the single use token validity by his expiration date
      * @param singleUseToken
-     * @return
+     * @return boolean
      * @throws SingleUseTokenNotFoundException
      */
     public boolean isSingleUseTokenValid(SingleUseToken singleUseToken) throws SingleUseTokenNotFoundException {
