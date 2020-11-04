@@ -7,15 +7,21 @@ import org.mapstruct.*;
 import java.util.List;
 
 @Mapper(componentModel="spring")
-public interface UserMapper {
+public abstract class UserMapper {
 
-    UserDTO toUserDTO(User user);
+    public abstract UserDTO toUserDTO(User user);
 
-    User toUser(UserDTO userDTO);
+    public abstract User toUser(UserDTO userDTO);
 
-    List<UserDTO> toUserDTO(List<User> users);
+    public abstract List<UserDTO> toUserDTO(List<User> users);
 
-    List<User> toUser(List<UserDTO> users);
+    public abstract List<User> toUser(List<UserDTO> users);
 
-    void updateModel(UserDTO userDTO, @MappingTarget User user);
+    public abstract void updateModel(UserDTO userDTO, @MappingTarget User user);
+
+
+    @AfterMapping
+    protected void fillAdmin(User user, @MappingTarget UserDTO userDTO) {
+        userDTO.setAdmin(user.getUserSecurity().isAdmin());
+    }
 }
