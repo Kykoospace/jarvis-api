@@ -11,6 +11,7 @@ import jarvisapi.repository.DeviceConnectionRepository;
 import jarvisapi.repository.UserDeviceRepository;
 import jarvisapi.repository.UserRepository;
 import jarvisapi.repository.UserSecurityRepository;
+import jarvisapi.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 import javax.mail.MessagingException;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -186,9 +188,9 @@ public class UserService implements UserDetailsService {
      * @throws SingleUseTokenNotFoundException
      * @throws SingleUseTokenExpiredException
      */
-    public User activateAccount(String email, String accountActivationToken, String password, String publicIp, String deviceType)
+    public User activateAccount(String userEmail, String accountActivationToken, String password, String publicIp, String deviceType)
             throws UserNotFoundException, SingleUseTokenNotFoundException, SingleUseTokenExpiredException {
-        Optional<User> userOptional = this.userRepository.findByEmail(email);
+        Optional<User> userOptional = this.userRepository.findByEmail(userEmail);
 
         if (!userOptional.isPresent()) {
             throw new UserNotFoundException();
@@ -218,15 +220,15 @@ public class UserService implements UserDetailsService {
 
     /**
      * Check account activation token validity
-     * @param email
+     * @param userEmail
      * @param accountActivationToken
      * @return
      * @throws UserNotFoundException
      * @throws SingleUseTokenNotFoundException
      */
-    public boolean checkAccountActivationTokenValidity(String email, String accountActivationToken)
+    public boolean checkAccountActivationTokenValidity(String userEmail, String accountActivationToken)
             throws UserNotFoundException, SingleUseTokenNotFoundException {
-        Optional<User> userOptional = this.userRepository.findByEmail(email);
+        Optional<User> userOptional = this.userRepository.findByEmail(userEmail);
 
         if (!userOptional.isPresent()) {
             throw new UserNotFoundException();
@@ -241,6 +243,32 @@ public class UserService implements UserDetailsService {
         }
 
         return this.singleUseTokenService.isSingleUseTokenValid(singleUseToken);
+    }
+
+    public boolean checkDeviceActivationTokenValidity(String userEmail, String deviceActivationToken)
+            throws UserNotFoundException, UserDeviceNotFoundException {
+        Optional<User> userOptional = this.userRepository.findByEmail(userEmail);
+
+        if (!userOptional.isPresent()) {
+            throw new UserNotFoundException();
+        }
+
+        User user = userOptional.get();
+
+        // Check token's value by filtering devices:
+        UserDevice userDevice = user.getUserSecurity().getDevices()
+                .stream()
+                // Filter by token value:
+                .filter(device -> !device.isVerified())
+                .filter(device -> deviceActivationToken.equals(device.getVerificationToken().getToken().toString()))
+                .findAny()
+                .orElse(null);
+
+        if (userDevice == null) {
+            throw new UserDeviceNotFoundException();
+        }
+
+        return this.singleUseTokenService.isSingleUseTokenValid(userDevice.getVerificationToken());
     }
 
     /**
@@ -387,6 +415,14 @@ public class UserService implements UserDetailsService {
             return userDevice;
         }
 
+        // Set userDevice a new token:
+        SingleUseToken oldSingleUseToken = userDevice.getVerificationToken();
+        userDevice.setVerificationToken(null);
+        this.singleUseTokenService.delete(oldSingleUseToken.getId());
+        userDevice.setVerificationToken(this.singleUseTokenService.create());
+        this.userDeviceRepository.save(userDevice);
+
+        // Send device activation email:
         this.mailerService.sendTrustDeviceVerificationMail(
                 user.getFirstName(),
                 user.getEmail(),
@@ -437,6 +473,49 @@ public class UserService implements UserDetailsService {
     public void setDeviceConnectionSuccessful(DeviceConnection deviceConnection) {
         deviceConnection.setSuccess(true);
         this.deviceConnectionRepository.save(deviceConnection);
+    }
+
+    /**
+     * Activate device
+     * @param userEmail
+     * @param deviceActivationToken
+     * @throws UserNotFoundException
+     * @throws UserDeviceNotFoundException
+     * @throws SingleUseTokenExpiredException
+     */
+    public void activateDevice(String userEmail, String deviceActivationToken)
+            throws UserNotFoundException, UserDeviceNotFoundException, SingleUseTokenExpiredException {
+        Optional<User> userOptional = this.userRepository.findByEmail(userEmail);
+
+        if (!userOptional.isPresent()) {
+            throw new UserNotFoundException();
+        }
+
+        User user = userOptional.get();
+
+        // Check token's value by filtering devices:
+        UserDevice userDevice = user.getUserSecurity().getDevices()
+                .stream()
+                // Filter by token value:
+                .filter(device -> !device.isVerified())
+                .filter(device -> deviceActivationToken.equals(device.getVerificationToken().getToken().toString()))
+                .findAny()
+                .orElse(null);
+
+        if (userDevice == null) {
+            throw new UserDeviceNotFoundException();
+        }
+
+        // Check token's expiration date:
+        if (DateUtils.isDateExpired(userDevice.getVerificationToken().getExpirationDate())) {
+            throw new SingleUseTokenExpiredException();
+        }
+
+        // Set device verified:
+        userDevice.setVerified(true);
+        userDevice.setVerificationDate(new Date());
+
+        this.userDeviceRepository.save(userDevice);
     }
 
     /**

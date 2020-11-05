@@ -94,6 +94,7 @@ public class AuthController {
         } catch (UserDeviceNotAuthorizedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -148,7 +149,7 @@ public class AuthController {
     }
 
     @PostMapping("/activate-account")
-    public ResponseEntity accountActivation(@Valid @RequestBody AccountActivationRequest accountActivationRequest, HttpServletRequest request) {
+    public ResponseEntity accountActivation(@RequestBody AccountActivationRequest accountActivationRequest, HttpServletRequest request) {
         try {
             this.userService.activateAccount(
                     accountActivationRequest.getEmail(),
@@ -163,7 +164,7 @@ public class AuthController {
         } catch (SingleUseTokenNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (SingleUseTokenExpiredException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
@@ -177,9 +178,7 @@ public class AuthController {
                     accountActivationTokenValidityRequest.getToken());
 
             return ResponseEntity.status(HttpStatus.OK).body(isTokenValid);
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-        } catch (SingleUseTokenNotFoundException e) {
+        } catch (UserNotFoundException | SingleUseTokenNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
@@ -194,6 +193,39 @@ public class AuthController {
         } catch (UserNotFoundException | UserAccountDisabledException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @PostMapping("/activate-device")
+    public ResponseEntity activateDevice(@Valid @RequestBody DeviceActivationRequest deviceActivationRequest) {
+        try {
+            this.userService.activateDevice(
+                    deviceActivationRequest.getEmail(),
+                    deviceActivationRequest.getToken());
+            return ResponseEntity.status(HttpStatus.OK).body(null);
+        } catch (UserNotFoundException | UserDeviceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (SingleUseTokenExpiredException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @PostMapping("/activate-device/check-token")
+    public ResponseEntity deviceActivationCheckTokenValidity(@RequestBody DeviceActivationTokenValidityRequest deviceActivationTokenValidityRequest) {
+        try {
+            boolean isTokenValid = this.userService.checkDeviceActivationTokenValidity(
+                    deviceActivationTokenValidityRequest.getEmail(),
+                    deviceActivationTokenValidityRequest.getToken());
+
+            return ResponseEntity.status(HttpStatus.OK).body(isTokenValid);
+        } catch (UserNotFoundException | UserDeviceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
