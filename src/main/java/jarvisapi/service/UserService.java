@@ -134,10 +134,6 @@ public class UserService implements UserDetailsService {
         // User creation :
         User user = new User(firstName, lastName, email, userSecurity);
 
-        // Add default task collection :
-        TaskCollection taskCollection = new TaskCollection("Mes tâches", false);
-        user.setTaskCollections(Collections.singletonList(taskCollection));
-
         return this.userRepository.save(user);
     }
 
@@ -178,7 +174,7 @@ public class UserService implements UserDetailsService {
 
     /**
      * Activate account
-     * @param email
+     * @param userEmail
      * @param accountActivationToken
      * @param password
      * @param publicIp
@@ -227,7 +223,7 @@ public class UserService implements UserDetailsService {
      * @throws SingleUseTokenNotFoundException
      */
     public boolean checkAccountActivationTokenValidity(String userEmail, String accountActivationToken)
-            throws UserNotFoundException, SingleUseTokenNotFoundException {
+            throws UserNotFoundException, UserAccountEnabledException, SingleUseTokenNotFoundException {
         Optional<User> userOptional = this.userRepository.findByEmail(userEmail);
 
         if (!userOptional.isPresent()) {
@@ -235,6 +231,9 @@ public class UserService implements UserDetailsService {
         }
 
         User user = userOptional.get();
+        if (user.getUserSecurity().isAccountEnabled()) {
+            throw new UserAccountEnabledException();
+        }
 
         // Token check:
         SingleUseToken singleUseToken = user.getUserSecurity().getAccountValidationToken();
@@ -245,32 +244,6 @@ public class UserService implements UserDetailsService {
         return this.singleUseTokenService.isSingleUseTokenValid(singleUseToken);
     }
 
-    public boolean checkDeviceActivationTokenValidity(String userEmail, String deviceActivationToken)
-            throws UserNotFoundException, UserDeviceNotFoundException {
-        Optional<User> userOptional = this.userRepository.findByEmail(userEmail);
-
-        if (!userOptional.isPresent()) {
-            throw new UserNotFoundException();
-        }
-
-        User user = userOptional.get();
-
-        // Check token's value by filtering devices:
-        UserDevice userDevice = user.getUserSecurity().getDevices()
-                .stream()
-                // Filter by token value:
-                .filter(device -> !device.isVerified())
-                .filter(device -> deviceActivationToken.equals(device.getVerificationToken().getToken().toString()))
-                .findAny()
-                .orElse(null);
-
-        if (userDevice == null) {
-            throw new UserDeviceNotFoundException();
-        }
-
-        return this.singleUseTokenService.isSingleUseTokenValid(userDevice.getVerificationToken());
-    }
-
     /**
      * Request a new account activation token and send email
      * @param userEmail
@@ -278,7 +251,7 @@ public class UserService implements UserDetailsService {
      * @throws IOException
      * @throws TemplateException
      */
-    public void requestNewActivationToken(String userEmail) throws MessagingException, IOException, TemplateException {
+    public void requestNewActivationToken(String userEmail) throws UserNotFoundException, UserAccountEnabledException, MessagingException, IOException, TemplateException {
         Optional<User> userOpt = this.userRepository.findByEmail(userEmail);
 
         if (!userOpt.isPresent()) {
@@ -286,8 +259,8 @@ public class UserService implements UserDetailsService {
         }
 
         User user = userOpt.get();
-        if (!user.getUserSecurity().isAccountEnabled()) {
-            throw new UserAccountDisabledException();
+        if (user.getUserSecurity().isAccountEnabled()) {
+            throw new UserAccountEnabledException();
         }
 
         this.setActivationToken(user);
@@ -476,14 +449,14 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Activate device
+     * Verify device
      * @param userEmail
      * @param deviceActivationToken
      * @throws UserNotFoundException
      * @throws UserDeviceNotFoundException
      * @throws SingleUseTokenExpiredException
      */
-    public void activateDevice(String userEmail, String deviceActivationToken)
+    public void verifyDevice(String userEmail, String deviceActivationToken)
             throws UserNotFoundException, UserDeviceNotFoundException, SingleUseTokenExpiredException {
         Optional<User> userOptional = this.userRepository.findByEmail(userEmail);
 
@@ -512,10 +485,46 @@ public class UserService implements UserDetailsService {
         }
 
         // Set device verified:
+        long lastTokenId = userDevice.getVerificationToken().getId();
         userDevice.setVerified(true);
         userDevice.setVerificationDate(new Date());
-
+        userDevice.setVerificationToken(null);
+        this.singleUseTokenService.delete(lastTokenId);
         this.userDeviceRepository.save(userDevice);
+    }
+
+    /**
+     * Check device verification token validity
+     * @param userEmail
+     * @param deviceActivationToken
+     * @return
+     * @throws UserNotFoundException
+     * @throws UserDeviceNotFoundException
+     */
+    public boolean checkDeviceVerificationTokenValidity(String userEmail, String deviceActivationToken)
+            throws UserNotFoundException, UserDeviceNotFoundException {
+        Optional<User> userOptional = this.userRepository.findByEmail(userEmail);
+
+        if (!userOptional.isPresent()) {
+            throw new UserNotFoundException();
+        }
+
+        User user = userOptional.get();
+
+        // Check token's value by filtering devices:
+        UserDevice userDevice = user.getUserSecurity().getDevices()
+                .stream()
+                // Filter by token value:
+                .filter(device -> !device.isVerified())
+                .filter(device -> deviceActivationToken.equals(device.getVerificationToken().getToken().toString()))
+                .findAny()
+                .orElse(null);
+
+        if (userDevice == null) {
+            throw new UserDeviceNotFoundException();
+        }
+
+        return this.singleUseTokenService.isSingleUseTokenValid(userDevice.getVerificationToken());
     }
 
     /**

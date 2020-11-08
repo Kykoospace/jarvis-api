@@ -8,13 +8,13 @@ import javax.validation.constraints.NotNull;
 
 @Getter
 @Setter
-public class DeviceActivationTokenValidityRequest {
+public class DeviceVerificationRequest {
 
-    @NotNull
     @NotBlank
+    @NotNull
     private String email;
 
-    @NotNull
     @NotBlank
+    @NotNull
     private String token;
 }

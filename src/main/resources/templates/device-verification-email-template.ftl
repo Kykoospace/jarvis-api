@@ -19,7 +19,7 @@
         <h1>Bonjour ${ userFirstName }</h1>
         <div>
             <p>Voici le code de vérification</p>
-            <p>${ secretCode }</p>
+            <a href="${ verificationDeviceUrl }">Verify device</a>
         </div>
     </body>
 </html>

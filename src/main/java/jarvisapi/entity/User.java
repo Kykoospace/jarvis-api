@@ -40,14 +40,8 @@ public class User {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
     private List<Task> tasks;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
-    private List<TaskCollection> taskCollections;
-
     @ManyToMany(mappedBy = "sharedWithUsers")
     private List<Task> tasksSharedToUser;
-
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
-    private List<TaskTag> taskTags;
 
     public User(
             String firstName,

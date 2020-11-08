@@ -19,10 +19,6 @@ public class Task {
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private long id;
 
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
-    private TaskCollection collection;
-
     @ManyToOne(fetch = FetchType.LAZY)
     private User owner;
 
@@ -57,15 +53,10 @@ public class Task {
     private List<SubTask> subTasks;
 
     @ManyToMany
-    @JoinTable(name = "jt_task_has_tag", joinColumns = @JoinColumn(name = "task_id"), inverseJoinColumns = @JoinColumn(name = "task_tag_id"))
-    private List<TaskTag> tags;
-
-    @ManyToMany
     @JoinTable(name = "jt_task_is_shared", joinColumns = @JoinColumn(name = "task_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
     private List<User> sharedWithUsers;
 
     public Task(
-            TaskCollection collection,
             String label,
             String description,
             int priority,
@@ -74,10 +65,8 @@ public class Task {
             boolean pinned,
             boolean checked,
             List<SubTask> subTasks,
-            List<TaskTag> tags,
             List<User> sharedWithUsers
     ) {
-        this.collection = collection;
         this.label = label;
         this.description = description;
         this.priority = priority;
@@ -87,7 +76,6 @@ public class Task {
         this.checked = checked;
         this.checkingDate = (checked) ? new Date() : null;
         this.subTasks = subTasks;
-        this.tags = tags;
         this.sharedWithUsers = sharedWithUsers;
     }
 }

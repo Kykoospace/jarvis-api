@@ -148,7 +148,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/activate-account")
+    @PostMapping("/account-activation")
     public ResponseEntity accountActivation(@RequestBody AccountActivationRequest accountActivationRequest, HttpServletRequest request) {
         try {
             this.userService.activateAccount(
@@ -159,9 +159,7 @@ public class AuthController {
                     accountActivationRequest.getDeviceType());
 
             return ResponseEntity.status(HttpStatus.OK).body(null);
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-        } catch (SingleUseTokenNotFoundException e) {
+        } catch (UserNotFoundException | UserAccountEnabledException | SingleUseTokenNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (SingleUseTokenExpiredException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
@@ -170,7 +168,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/activate-account/check-token")
+    @PostMapping("/account-activation/check-token")
     public ResponseEntity accountActivationCheckTokenValidity(@RequestBody AccountActivationTokenValidityRequest accountActivationTokenValidityRequest) {
         try {
             boolean isTokenValid = this.userService.checkAccountActivationTokenValidity(
@@ -178,31 +176,31 @@ public class AuthController {
                     accountActivationTokenValidityRequest.getToken());
 
             return ResponseEntity.status(HttpStatus.OK).body(isTokenValid);
-        } catch (UserNotFoundException | SingleUseTokenNotFoundException e) {
+        } catch (UserNotFoundException | UserAccountEnabledException | SingleUseTokenNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
-    @PostMapping("/activate-account/new-token")
+    @PostMapping("/account-activation/new-token")
     public ResponseEntity newAccountActivationToken(@RequestBody NewAccountActivationTokenRequest newAccountActivationTokenRequest) {
         try {
             this.userService.requestNewActivationToken(newAccountActivationTokenRequest.getEmail());
             return ResponseEntity.status(HttpStatus.OK).body(null);
-        } catch (UserNotFoundException | UserAccountDisabledException e) {
+        } catch (UserNotFoundException | UserAccountEnabledException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
-    @PostMapping("/activate-device")
-    public ResponseEntity activateDevice(@Valid @RequestBody DeviceActivationRequest deviceActivationRequest) {
+    @PostMapping("/device-verification")
+    public ResponseEntity verifyDevice(@Valid @RequestBody DeviceVerificationRequest deviceVerificationRequest) {
         try {
-            this.userService.activateDevice(
-                    deviceActivationRequest.getEmail(),
-                    deviceActivationRequest.getToken());
+            this.userService.verifyDevice(
+                    deviceVerificationRequest.getEmail(),
+                    deviceVerificationRequest.getToken());
             return ResponseEntity.status(HttpStatus.OK).body(null);
         } catch (UserNotFoundException | UserDeviceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
@@ -214,12 +212,12 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/activate-device/check-token")
-    public ResponseEntity deviceActivationCheckTokenValidity(@RequestBody DeviceActivationTokenValidityRequest deviceActivationTokenValidityRequest) {
+    @PostMapping("/device-verification/check-token")
+    public ResponseEntity deviceVerificationCheckTokenValidity(@RequestBody DeviceVerificationTokenValidityRequest deviceVerificationTokenValidityRequest) {
         try {
-            boolean isTokenValid = this.userService.checkDeviceActivationTokenValidity(
-                    deviceActivationTokenValidityRequest.getEmail(),
-                    deviceActivationTokenValidityRequest.getToken());
+            boolean isTokenValid = this.userService.checkDeviceVerificationTokenValidity(
+                    deviceVerificationTokenValidityRequest.getEmail(),
+                    deviceVerificationTokenValidityRequest.getToken());
 
             return ResponseEntity.status(HttpStatus.OK).body(isTokenValid);
         } catch (UserNotFoundException | UserDeviceNotFoundException e) {

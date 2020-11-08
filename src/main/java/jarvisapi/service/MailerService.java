@@ -25,8 +25,14 @@ import java.util.Map;
 @Service
 public class MailerService {
 
-    @Value("${spring.front.activateAccountUrl}")
-    private String ACTIVATE_ACCOUNT_URL;
+    @Value("${spring.front.url}")
+    private String FRONT_URL;
+
+    @Value("${spring.front.activationAccountUrl}")
+    private String FRONT_ACTIVATION_ACCOUNT_URL;
+
+    @Value("${spring.front.verificationDeviceUrl}")
+    private String FRONT_VERIFICATION_DEVICE_URL;
 
     @Value("${spring.mail.username}")
     private String NO_REPLY_EMAIL;
@@ -45,24 +51,31 @@ public class MailerService {
         Map<String, String> urlParams = new HashMap<>();
         urlParams.put("email", userEmail);
         urlParams.put("token", activationToken);
-        String activationLink = this.encoreUrl(this.ACTIVATE_ACCOUNT_URL, urlParams);
+        String activationUrl = this.encoreUrl(this.FRONT_URL + this.FRONT_ACTIVATION_ACCOUNT_URL, urlParams);
 
         // Model parameters:
         Map<String, Object> modelParams = new HashMap();
         modelParams.put("userFirstName", userFirstName);
-        modelParams.put("activateAccountUrl", activationLink);
+        modelParams.put("activateAccountUrl", activationUrl);
         mail.setModel(modelParams);
 
         this.sendSimpleMessage(mail, "account-activation-email-template.ftl");
     }
 
+    @Async
     public void sendTrustDeviceVerificationMail(String userFirstName, String userEmail, String verificationToken) throws MessagingException, IOException, TemplateException {
         Mail mail = this.createMail(userEmail, "Device verification");
+
+        // Link construction:
+        Map<String, String> urlParams = new HashMap<>();
+        urlParams.put("email", userEmail);
+        urlParams.put("token", verificationToken);
+        String verificationUrl = this.encoreUrl(this.FRONT_URL + this.FRONT_VERIFICATION_DEVICE_URL, urlParams);
 
         // Model parameters:
         Map<String, Object> modelParams = new HashMap();
         modelParams.put("userFirstName", userFirstName);
-        modelParams.put("secretCode", verificationToken);
+        modelParams.put("verificationDeviceUrl", verificationUrl);
         mail.setModel(modelParams);
 
         this.sendSimpleMessage(mail, "device-verification-email-template.ftl");
