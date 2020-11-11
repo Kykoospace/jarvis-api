@@ -2,6 +2,7 @@ package jarvisapi.controller;
 
 import jarvisapi.dto.UserDTO;
 import jarvisapi.dto.UserDeviceDTO;
+import jarvisapi.entity.User;
 import jarvisapi.exception.UserNotFoundException;
 import jarvisapi.mapper.UserMapper;
 import jarvisapi.service.UserService;
@@ -26,7 +27,8 @@ public class UserController {
     @GetMapping("user")
     public ResponseEntity getUser() {
         try {
-            UserDTO userDTO = this.userService.getUserFromContext();
+            User user = this.userService.getUserFromContext();
+            UserDTO userDTO = this.userService.get(user.getId());
             return ResponseEntity.status(HttpStatus.OK).body(userDTO);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
@@ -73,8 +75,8 @@ public class UserController {
     @GetMapping("devices")
     public ResponseEntity getDevices() {
         try {
-            UserDTO userDTO = this.userService.getUserFromContext();
-            List<UserDeviceDTO> userDevices = this.userService.getUserDevices(userDTO.getId());
+            User user = this.userService.getUserFromContext();
+            List<UserDeviceDTO> userDevices = this.userService.getUserDevices(user.getId());
             return ResponseEntity.status(HttpStatus.OK).body(userDevices);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());

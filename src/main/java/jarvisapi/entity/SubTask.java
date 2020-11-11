@@ -19,7 +19,7 @@ public class SubTask {
     private long id;
 
     @JsonIgnore
-    @ManyToOne(fetch= FetchType.LAZY)
+    @ManyToOne
     private Task task;
 
     @Column(name = "label", nullable = false)

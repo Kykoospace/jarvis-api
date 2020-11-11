@@ -34,7 +34,7 @@ public class UserSecurity {
     @OneToOne(cascade = CascadeType.ALL)
     private SingleUseToken accountValidationToken;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "userSecurity", fetch = FetchType.LAZY)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "userSecurity")
     private List<UserDevice> devices;
 
     public UserSecurity(

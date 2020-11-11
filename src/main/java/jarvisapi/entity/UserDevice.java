@@ -23,7 +23,7 @@ public class UserDevice {
     private long id;
 
     @JsonIgnore
-    @ManyToOne(fetch= FetchType.LAZY)
+    @ManyToOne
     private UserSecurity userSecurity;
 
     @Column(name = "public_ip")
@@ -46,7 +46,7 @@ public class UserDevice {
     @OneToOne(cascade = CascadeType.ALL)
     public SingleUseToken verificationToken;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "userDevice", fetch = FetchType.LAZY)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "userDevice")
     private List<DeviceConnection> connections;
 
     public UserDevice(String publicIp, String type) {

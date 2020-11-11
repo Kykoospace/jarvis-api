@@ -19,7 +19,7 @@ public class Task {
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     private User owner;
 
     @Column(name = "label", nullable = false)
@@ -49,7 +49,7 @@ public class Task {
     @Column(name = "creation_date", nullable = false)
     private Date creationDate = new Date();
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "task", fetch = FetchType.LAZY)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "task")
     private List<SubTask> subTasks;
 
     @ManyToMany

@@ -20,7 +20,7 @@ public class DeviceConnection {
     private long id;
 
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     private UserDevice userDevice;
 
     @Column(name = "credential_success")

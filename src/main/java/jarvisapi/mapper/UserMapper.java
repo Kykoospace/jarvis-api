@@ -1,6 +1,7 @@
 package jarvisapi.mapper;
 
 import jarvisapi.dto.UserDTO;
+import jarvisapi.dto.UserShortDTO;
 import jarvisapi.entity.User;
 import org.mapstruct.*;
 
@@ -10,6 +11,8 @@ import java.util.List;
 public abstract class UserMapper {
 
     public abstract UserDTO toUserDTO(User user);
+
+    public abstract UserShortDTO toUserShortDTO(User user);
 
     public abstract User toUser(UserDTO userDTO);
 

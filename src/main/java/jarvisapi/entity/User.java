@@ -37,7 +37,10 @@ public class User {
     @JoinColumn(name = "user_security", referencedColumnName = "id", nullable = false)
     private UserSecurity userSecurity;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner", fetch = FetchType.LAZY)
+    @OneToOne(cascade = CascadeType.ALL)
+    private Folder homeFolder;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner")
     private List<Task> tasks;
 
     @ManyToMany(mappedBy = "sharedWithUsers")

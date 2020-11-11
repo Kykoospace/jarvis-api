@@ -59,6 +59,9 @@ public class UserService implements UserDetailsService {
     private DeviceConnectionRepository deviceConnectionRepository;
 
     @Autowired
+    private FolderService folderService;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     /**
@@ -66,7 +69,7 @@ public class UserService implements UserDetailsService {
      * @return
      * @throws UserNotFoundException
      */
-    public UserDTO getUserFromContext() throws UserNotFoundException {
+    public User getUserFromContext() throws UserNotFoundException {
         org.springframework.security.core.userdetails.User userDetails = (org.springframework.security.core.userdetails.User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Optional<User> user = this.userRepository.findByEmail(userDetails.getUsername());
 
@@ -74,7 +77,7 @@ public class UserService implements UserDetailsService {
             throw new UserNotFoundException();
         }
 
-        return this.userMapper.toUserDTO(user.get());
+        return user.get();
     }
 
     /**
@@ -133,6 +136,10 @@ public class UserService implements UserDetailsService {
 
         // User creation :
         User user = new User(firstName, lastName, email, userSecurity);
+        this.userRepository.save(user);
+
+        // Set the home folder:
+        user.setHomeFolder(this.folderService.createHomeFolder(user));
 
         return this.userRepository.save(user);
     }
