@@ -33,6 +33,17 @@ public class FolderService {
         return this.folderMapper.toFolderDTO(user.getHomeFolder());
     }
 
+    public FolderDTO get(long id) {
+        User user = this.userService.getUserFromContext();
+        Optional<Folder> folderOpt = this.folderRepository.getByIdAndOwnerId(id, user);
+
+        if (!folderOpt.isPresent()) {
+            throw new FolderNotFoundException();
+        }
+
+        return this.folderMapper.toFolderDTO(folderOpt.get());
+    }
+
     public FolderDTO create(FolderCDTO folderCDTO) {
         User user = this.userService.getUserFromContext();
         Folder folder = this.folderMapper.toFolder(folderCDTO);

@@ -9,6 +9,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface FolderRepository extends JpaRepository<Folder, Long> {
-    @Query("SELECT f FROM Folder f WHERE f.id=:id AND f.owner=:owner AND f.parent<>NULL")
+    @Query("SELECT f FROM Folder f WHERE f.id=:id AND f.owner=:owner")
     Optional<Folder> getByIdAndOwnerId(@Param("id") long id, @Param("owner") User owner);
 }

@@ -33,6 +33,18 @@ public class FilesController {
         }
     }
 
+    @GetMapping("/folders/{id}")
+    public ResponseEntity getFolder(@PathVariable long id) {
+        try {
+            FolderDTO folderDTO = this.folderService.get(id);
+            return ResponseEntity.status(HttpStatus.OK).body(folderDTO);
+        } catch (FolderNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
     @PostMapping("/folders")
     public ResponseEntity createFolder(@RequestBody FolderCDTO folderCDTO) {
         try {
