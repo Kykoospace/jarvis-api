@@ -16,22 +16,33 @@
 
 	<properties>
 		<java.version>1.8</java.version>
+		<org.freemarker.version>2.3.23</org.freemarker.version>
+		<com.sun.mail.version>1.6.0</com.sun.mail.version>
 		<org.mapstruct.version>1.4.1.Final</org.mapstruct.version>
 		<org.projectlombok.version>1.18.16</org.projectlombok.version>
+		<io.jsonwebtoken.version>0.9.1</io.jsonwebtoken.version>
 		<m2e.apt.activation>jdt_apt</m2e.apt.activation>
 		<io.springfox.version>2.9.2</io.springfox.version>
+		<org.springframework.security.version>3.1.0.RELEASE</org.springframework.security.version>
+		<org.springframework.boot.version>2.3.1.RELEASE</org.springframework.boot.version>
+		<org.springframework.version>5.2.4.RELEASE</org.springframework.version>
+		<jakarta.validation.version>2.0.2</jakarta.validation.version>
+		<org.hibernate.version>5.4.17.Final</org.hibernate.version>
+		<jakarta.persistence.version>2.2.3</jakarta.persistence.version>
+		<org.junit.jupiter.version>5.4.2</org.junit.jupiter.version>
+		<org.testcontainers.version>1.15.0</org.testcontainers.version>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.freemarker</groupId>
 			<artifactId>freemarker</artifactId>
-			<version>2.3.23</version>
+			<version>${org.freemarker.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sun.mail</groupId>
 			<artifactId>javax.mail</artifactId>
-			<version>1.6.0</version>
+			<version>${com.sun.mail.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.springfox</groupId>
@@ -70,7 +81,7 @@
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt</artifactId>
-			<version>0.9.1</version>
+			<version>${io.jsonwebtoken.version}</version>
 		</dependency>
 
 		<dependency>
@@ -84,26 +95,46 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers</artifactId>
+			<version>${org.testcontainers.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>mysql</artifactId>
+			<version>${org.testcontainers.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>${org.testcontainers.version}</version>
+			<scope>test</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-crypto</artifactId>
-			<version>3.1.0.RELEASE</version>
+			<version>${org.springframework.security.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
-			<version>2.3.1.RELEASE</version>
+			<version>${org.springframework.boot.version}</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-web</artifactId>
-			<version>5.2.4.RELEASE</version>
+			<version>${org.springframework.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>jakarta.validation</groupId>
 			<artifactId>jakarta.validation-api</artifactId>
-			<version>2.0.2</version>
+			<version>${jakarta.validation.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -117,17 +148,17 @@
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-core</artifactId>
-			<version>5.4.17.Final</version>
+			<version>${org.hibernate.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>jakarta.persistence</groupId>
 			<artifactId>jakarta.persistence-api</artifactId>
-			<version>2.2.3</version>
+			<version>${jakarta.persistence.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context-support</artifactId>
-			<version>5.2.4.RELEASE</version>
+			<version>${org.springframework.version}</version>
 		</dependency>
 	</dependencies>
 
